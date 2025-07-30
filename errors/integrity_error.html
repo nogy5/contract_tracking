@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error de Integridad - {{ error_type|default('Error de Base de Datos') }}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .error-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 0;
+        }
+        .error-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            max-width: 600px;
+            width: 100%;
+        }
+        .error-header {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .error-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.9;
+        }
+        .error-body {
+            padding: 2rem;
+        }
+        .error-details {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            border-left: 4px solid #dc3545;
+        }
+        .error-code {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .solution-box {
+            background: #e8f5e8;
+            border: 1px solid #c3e6c3;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .btn-custom {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            color: white;
+        }
+        .constraint-type {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 0.25rem;
+        }
+        .constraint-unique {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .constraint-foreign {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .constraint-check {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .constraint-not-null {
+            background: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <!-- Header del Error -->
+            <div class="error-header">
+                <div class="error-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h1 class="mb-2">Error de Integridad</h1>
+                <p class="mb-0">No se pudo completar la operación en la base de datos</p>
+            </div>
+
+            <!-- Cuerpo del Error -->
+            <div class="error-body">
+                <!-- Tipo de Error -->
+                <div class="text-center mb-4">
+                    {% if constraint_type == 'unique' %}
+                        <span class="constraint-type constraint-unique">
+                            <i class="fas fa-copy me-1"></i>UNIQUE CONSTRAINT
+                        </span>
+                    {% elif constraint_type == 'foreign_key' %}
+                        <span class="constraint-type constraint-foreign">
+                            <i class="fas fa-link me-1"></i>FOREIGN KEY CONSTRAINT
+                        </span>
+                    {% elif constraint_type == 'check' %}
+                        <span class="constraint-type constraint-check">
+                            <i class="fas fa-check-square me-1"></i>CHECK CONSTRAINT
+                        </span>
+                    {% elif constraint_type == 'not_null' %}
+                        <span class="constraint-type constraint-not-null">
+                            <i class="fas fa-exclamation-circle me-1"></i>NOT NULL CONSTRAINT
+                        </span>
+                    {% else %}
+                        <span class="constraint-type constraint-check">
+                            <i class="fas fa-database me-1"></i>INTEGRITY CONSTRAINT
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Mensaje Principal -->
+                <div class="alert alert-danger" role="alert">
+                    <h5 class="alert-heading">
+                        <i class="fas fa-times-circle me-2"></i>¿Qué ocurrió?
+                    </h5>
+                    <p class="mb-0">
+                        {% if constraint_type == 'unique' %}
+                            El valor que intentas guardar ya existe en la base de datos.
+                            Cada registro debe tener un valor único para este campo.
+                        {% elif constraint_type == 'foreign_key' %}
+                            El registro que intentas referenciar no existe o ha sido eliminado.
+                            Verifica que la referencia sea válida.
+                        {% elif constraint_type == 'check' %}
+                            El valor proporcionado no cumple con las reglas de validación establecidas.
+                        {% elif constraint_type == 'not_null' %}
+                            Un campo obligatorio no fue proporcionado. Todos los campos marcados como obligatorios deben tener un valor.
+                        {% else %}
+                            Se violó una restricción de integridad en la base de datos.
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Detalles del Error -->
+                {% if error_message %}
+                <div class="error-details">
+                    <h6><i class="fas fa-info-circle me-2"></i>Detalles técnicos:</h6>
+                    <div class="error-code">{{ error_message }}</div>
+                </div>
+                {% endif %}
+
+                <!-- Información adicional -->
+                {% if table_name or column_name %}
+                <div class="row mb-3">
+                    {% if table_name %}
+                    <div class="col-md-6">
+                        <div class="card border-info">
+                            <div class="card-body text-center">
+                                <i class="fas fa-table text-info mb-2"></i>
+                                <h6 class="card-title">Tabla afectada</h6>
+                                <p class="card-text"><code>{{ table_name }}</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if column_name %}
+                    <div class="col-md-6">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-columns text-warning mb-2"></i>
+                                <h6 class="card-title">Campo afectado</h6>
+                                <p class="card-text"><code>{{ column_name }}</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Soluciones Sugeridas -->
+                <div class="solution-box">
+                    <h6><i class="fas fa-lightbulb text-success me-2"></i>Posibles soluciones:</h6>
+                    <ul class="mb-0">
+                        {% if constraint_type == 'unique' %}
+                            <li>Usa un valor diferente para el campo duplicado</li>
+                            <li>Verifica si el registro ya existe antes de crearlo</li>
+                            <li>Considera actualizar el registro existente en lugar de crear uno nuevo</li>
+                        {% elif constraint_type == 'foreign_key' %}
+                            <li>Verifica que el registro referenciado existe</li>
+                            <li>Crea primero el registro padre antes de crear el hijo</li>
+                            <li>Usa un ID válido para la referencia</li>
+                        {% elif constraint_type == 'check' %}
+                            <li>Revisa que el valor cumple con las reglas de validación</li>
+                            <li>Verifica rangos de valores permitidos</li>
+                            <li>Consulta la documentación del campo</li>
+                        {% elif constraint_type == 'not_null' %}
+                            <li>Proporciona un valor para todos los campos obligatorios</li>
+                            <li>Revisa que no falten datos en el formulario</li>
+                            <li>Verifica los valores predeterminados</li>
+                        {% else %}
+                            <li>Revisa los datos ingresados</li>
+                            <li>Verifica las relaciones entre tablas</li>
+                            <li>Consulta la documentación de la base de datos</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="text-center mt-4">
+                    <a href="javascript:history.back()" class="btn btn-custom me-2">
+                        <i class="fas fa-arrow-left me-2"></i>Volver
+                    </a>
+                    <a href="{{ url_for('contracts.index') if url_for else '/' }}" class="btn btn-outline-primary">
+                        <i class="fas fa-home me-2"></i>Inicio
+                    </a>
+                </div>
+
+                <!-- Información de Soporte -->
+                <div class="text-center mt-4">
+                    <small class="text-muted">
+                        <i class="fas fa-question-circle me-1"></i>
+                        Si el problema persiste, contacta al administrador del sistema
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Animación de entrada
+        document.addEventListener('DOMContentLoaded', function() {
+            const card = document.querySelector('.error-card');
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(50px)';
+            card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, 100);
+        });
+
+        // Función para copiar detalles del error
+        function copyErrorDetails() {
+            const errorText = document.querySelector('.error-code');
+            if (errorText) {
+                navigator.clipboard.writeText(errorText.textContent).then(() => {
+                    // Mostrar confirmación
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'alert alert-success position-fixed';
+                    tooltip.style.top = '20px';
+                    tooltip.style.right = '20px';
+                    tooltip.style.zIndex = '9999';
+                    tooltip.innerHTML = '<i class="fas fa-check me-2"></i>Error copiado al portapapeles';
+                    document.body.appendChild(tooltip);
+
+                    setTimeout(() => {
+                        tooltip.remove();
+                    }, 3000);
+                });
+            }
+        }
+
+        // Agregar botón de copiar si hay detalles de error
+        document.addEventListener('DOMContentLoaded', function() {
+            const errorCode = document.querySelector('.error-code');
+            if (errorCode) {
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'btn btn-sm btn-outline-light float-end';
+                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                copyBtn.onclick = copyErrorDetails;
+                copyBtn.title = 'Copiar detalles del error';
+
+                const errorDetails = document.querySelector('.error-details h6');
+                if (errorDetails) {
+                    errorDetails.appendChild(copyBtn);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
