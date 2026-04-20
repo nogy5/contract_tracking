@@ -19,6 +19,7 @@ class Contract(db.Model):
     payment_entry = db.Column(db.String(100))  # Ingreso a pago
     # ------------------------------
     facturacion = db.Column(db.Numeric(15, 2))
+    facturado   = db.Column(db.Numeric(15, 2), nullable=True, default=0)
     status = db.Column(db.String(20), default='activo')  # activo, finalizado, cancelado, etc.
     counterparty = db.Column(db.String(100), nullable=False)  # Parte contratante
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

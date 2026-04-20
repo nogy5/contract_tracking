@@ -9,21 +9,23 @@ class ContractForm(FlaskForm):
     contract_number = StringField('Número de Contrato', validators=[DataRequired(), Length(max=50)])
     start_date = DateField('Fecha de Inicio', validators=[DataRequired()])
     end_date = DateField('Fecha de Finalización', validators=[Optional()])
-    indefinite_contract = BooleanField('Contrato indefinido')  # Nuevo campo checkbox
+    indefinite_contract = BooleanField('Contrato indefinido')
     value = DecimalField('Valor del Contrato', validators=[Optional(), NumberRange(min=0)])
-    # --- NUEVOS CAMPOS AÑADIDOS ---
+    # --- CAMPOS DE PAGO ---
     payment_period = StringField('Periodo de Pago', validators=[Optional(), Length(max=100)])
-    payment_entry = StringField('Ingreso a pago', validators=[Optional(), Length(max=100)])
-    # ------------------------------
+    payment_entry  = StringField('Ingreso a pago',  validators=[Optional(), Length(max=100)])
+    # --- CAMPOS DE FACTURACIÓN ---
     facturacion = DecimalField('Facturación', validators=[Optional(), NumberRange(min=0)])
+    facturado   = DecimalField('Facturado',   validators=[Optional(), NumberRange(min=0)])
+    # ------------------------------
     counterparty = StringField('Cliente', validators=[DataRequired(), Length(max=100)])
     status = SelectField('Estado', choices=[
-        ('activo', 'Activo'),
-        ('finalizado', 'Finalizado'),
-        ('cancelado', 'Cancelado'),
+        ('activo',      'Activo'),
+        ('finalizado',  'Finalizado'),
+        ('cancelado',   'Cancelado'),
         ('en_revision', 'En Revisión'),
-        ('vencido', 'Vencido'),
-        ('suspendido', 'Suspendido')
+        ('vencido',     'Vencido'),
+        ('suspendido',  'Suspendido'),
     ], validators=[DataRequired()])
     submit = SubmitField('Guardar')
 
@@ -34,7 +36,9 @@ class ContractForm(FlaskForm):
 
         # Si no es indefinido, la fecha de finalización es requerida
         if not self.indefinite_contract.data and not self.end_date.data:
-            self.end_date.errors.append('La fecha de finalización es requerida para contratos con duración definida.')
+            self.end_date.errors.append(
+                'La fecha de finalización es requerida para contratos con duración definida.'
+            )
             return False
 
         # Si es indefinido, limpiar la fecha de finalización
@@ -44,13 +48,16 @@ class ContractForm(FlaskForm):
         # Validar que la fecha de fin sea posterior a la de inicio
         if self.end_date.data and self.start_date.data:
             if self.end_date.data <= self.start_date.data:
-                self.end_date.errors.append('La fecha de finalización debe ser posterior a la fecha de inicio.')
+                self.end_date.errors.append(
+                    'La fecha de finalización debe ser posterior a la fecha de inicio.'
+                )
                 return False
 
         return True
 
+
 class MilestoneForm(FlaskForm):
-    title = StringField('Título', validators=[DataRequired(), Length(max=100)])
-    description = TextAreaField('Descripción', validators=[Optional(), Length(max=500)])
-    due_date = DateField('Fecha de Vencimiento', validators=[DataRequired()])
-    submit = SubmitField('Guardar')
+    title       = StringField('Título',               validators=[DataRequired(), Length(max=100)])
+    description = TextAreaField('Descripción',         validators=[Optional(), Length(max=500)])
+    due_date    = DateField('Fecha de Vencimiento',    validators=[DataRequired()])
+    submit      = SubmitField('Guardar')

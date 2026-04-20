@@ -20,12 +20,9 @@
     </div>
     <div class="card-body py-3">
         <form method="GET" action="{{ url_for('contracts.index') }}" id="filterForm">
-            {# Conservar ordenación al filtrar #}
             <input type="hidden" name="sort" value="{{ request.args.get('sort', '') }}">
             <input type="hidden" name="dir"  value="{{ request.args.get('dir', 'asc') }}">
-
             <div class="row g-2 align-items-end">
-                <!-- Estado -->
                 <div class="col-md-2">
                     <label for="status" class="form-label form-label-sm mb-1">Estado</label>
                     <select class="form-select form-select-sm" id="status" name="status">
@@ -37,39 +34,27 @@
                         <option value="suspendido"  {% if request.args.get('status') == 'suspendido'  %}selected{% endif %}>Suspendido</option>
                     </select>
                 </div>
-
-                <!-- Cliente / Contraparte -->
                 <div class="col-md-3">
                     <label for="counterparty" class="form-label form-label-sm mb-1">Cliente / Contraparte</label>
                     <input type="text" class="form-control form-control-sm" id="counterparty" name="counterparty"
-                           placeholder="Buscar cliente…"
-                           value="{{ request.args.get('counterparty', '') }}">
+                           placeholder="Buscar cliente…" value="{{ request.args.get('counterparty', '') }}">
                 </div>
-
-                <!-- Número de contrato -->
                 <div class="col-md-2">
                     <label for="contract_number" class="form-label form-label-sm mb-1">Número de Contrato</label>
                     <input type="text" class="form-control form-control-sm" id="contract_number" name="contract_number"
-                           placeholder="Ej. CONT-001"
-                           value="{{ request.args.get('contract_number', '') }}">
+                           placeholder="Ej. CONT-001" value="{{ request.args.get('contract_number', '') }}">
                 </div>
-
-                <!-- Título -->
                 <div class="col-md-3">
                     <label for="title" class="form-label form-label-sm mb-1">Título</label>
                     <input type="text" class="form-control form-control-sm" id="title" name="title"
-                           placeholder="Buscar título…"
-                           value="{{ request.args.get('title', '') }}">
+                           placeholder="Buscar título…" value="{{ request.args.get('title', '') }}">
                 </div>
-
-                <!-- Fecha de inicio -->
                 <div class="col-md-2">
                     <label for="start_date" class="form-label form-label-sm mb-1">Fecha de Inicio</label>
                     <input type="date" class="form-control form-control-sm" id="start_date" name="start_date"
                            value="{{ request.args.get('start_date', '') }}">
                 </div>
             </div>
-
             <div class="row mt-2">
                 <div class="col-auto">
                     <button type="submit" class="btn btn-sm btn-primary">Aplicar filtros</button>
@@ -99,7 +84,6 @@
 <!-- ═══════════════════════ TABLA DE CONTRATOS ═══════════════════ -->
 {% if contracts %}
 
-{# ── Macro: URL para ordenar columna, invirtiendo dirección si ya está activa ── #}
 {% macro sort_url(col) %}{{ url_for('contracts.index',
     sort=col,
     dir=('desc' if (request.args.get('sort','') == col and request.args.get('dir','asc') == 'asc') else 'asc'),
@@ -110,7 +94,6 @@
     start_date=request.args.get('start_date',''),
     page=1) }}{% endmacro %}
 
-{# ── Macro: ícono de dirección activa ── #}
 {% macro sort_icon(col) %}{% if request.args.get('sort','') == col %}{% if request.args.get('dir','asc') == 'asc' %} ▲{% else %} ▼{% endif %}{% else %} <span style="opacity:.3;">⇅</span>{% endif %}{% endmacro %}
 
 <div class="card">
@@ -123,61 +106,69 @@
             <table class="table table-hover table-striped mb-0 align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th scope="col" style="white-space:nowrap; width:16%;">
+                        <th style="white-space:nowrap; width:15%;">
                             <a href="{{ sort_url('counterparty') }}" class="text-white text-decoration-none">
                                 Cliente / Contraparte{{ sort_icon('counterparty') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:10%;">
+                        <th style="white-space:nowrap; width:9%;">
                             <a href="{{ sort_url('contract_number') }}" class="text-white text-decoration-none">
                                 Nº Contrato{{ sort_icon('contract_number') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:18%;">
+                        <th style="white-space:nowrap; width:17%;">
                             <a href="{{ sort_url('title') }}" class="text-white text-decoration-none">
                                 Título{{ sort_icon('title') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:9%;">
+                        <th style="white-space:nowrap; width:8%;">
                             <a href="{{ sort_url('start_date') }}" class="text-white text-decoration-none">
                                 Fecha Inicio{{ sort_icon('start_date') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:9%;">
+                        <th style="white-space:nowrap; width:8%;">
                             <a href="{{ sort_url('end_date') }}" class="text-white text-decoration-none">
                                 Fecha Fin{{ sort_icon('end_date') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:8%;">
+                        <th style="white-space:nowrap; width:8%;">
                             <a href="{{ sort_url('value') }}" class="text-white text-decoration-none">
                                 Valor{{ sort_icon('value') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:7%;">
+                        <th style="white-space:nowrap; width:6%;">
                             <a href="{{ sort_url('status') }}" class="text-white text-decoration-none">
                                 Estado{{ sort_icon('status') }}
                             </a>
                         </th>
-                        <th scope="col" style="white-space:nowrap; width:13%;" class="text-center">Acciones</th>
-                        <th scope="col" style="white-space:nowrap; width:10%;" class="text-center"
-                            title="Total / Completados / Pendientes / Vencidos">
-                            Hitos
+                        {# ── NUEVA columna Facturación ── #}
+                        <th style="white-space:nowrap; width:8%;" class="text-center"
+                            title="Facturado vs Valor del contrato">
+                            <a href="{{ sort_url('facturado') }}" class="text-white text-decoration-none">
+                                Facturación{{ sort_icon('facturado') }}
+                            </a>
                         </th>
+                        <th style="white-space:nowrap; width:13%;" class="text-center">Acciones</th>
+                        <th style="white-space:nowrap; width:8%;" class="text-center"
+                            title="Total / Completados / Pendientes">Hitos</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for contract in contracts %}
-                    {# ── Conteos de hitos (lazy=dynamic → usar .count() / .filter_by()) ── #}
-                    {% set ms_total     = contract.milestones.count() %}
-                    {% set ms_done      = contract.milestones.filter_by(completed=True).count() %}
-                    {% set ms_pending   = ms_total - ms_done %}
-                    {# Vencidos: pendientes cuya due_date < hoy #}
-                    {% set today_date   = today if today is defined else namespace(d=none) %}
+                    {# ── Cálculo de facturación ── #}
+                    {% set v         = contract.value    | float(0) %}
+                    {% set f         = contract.facturado | float(0) %}
+                    {% set diferencia = v - f %}
+
+                    {# ── Conteos de hitos ── #}
+                    {% set ms_total   = contract.milestones.count() %}
+                    {% set ms_done    = contract.milestones.filter_by(completed=True).count() %}
+                    {% set ms_pending = ms_total - ms_done %}
                     <tr>
-                        <!-- 1. CLIENTE / CONTRAPARTE -->
+                        <!-- 1. CLIENTE -->
                         <td><strong>{{ contract.counterparty }}</strong></td>
 
-                        <!-- 2. NÚMERO DE CONTRATO -->
+                        <!-- 2. Nº CONTRATO -->
                         <td>
                             <span class="badge bg-info text-dark">{{ contract.contract_number }}</span>
                         </td>
@@ -185,9 +176,7 @@
                         <!-- 3. TÍTULO -->
                         <td>
                             <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
-                               class="text-decoration-none">
-                                {{ contract.title }}
-                            </a>
+                               class="text-decoration-none">{{ contract.title }}</a>
                         </td>
 
                         <!-- 4. FECHA INICIO -->
@@ -228,22 +217,51 @@
                             {% endif %}
                         </td>
 
-                        <!-- 8. ACCIONES -->
+                        <!-- 8. FACTURACIÓN ──────────────────────────────────────────
+                             💲✅  facturado == valor  (completamente facturado)
+                             💲⚠️  facturado >  valor  (sobre-facturado)
+                             💲❌  facturado <  valor  (pendiente de facturar)
+                             —    sin valor definido
+                        ──────────────────────────────────────────────────────────── -->
+                        <td class="text-center">
+                            {% if not contract.value %}
+                                <span class="text-muted" title="Sin valor de contrato">—</span>
+                            {% elif diferencia == 0 %}
+                                {# Completamente facturado #}
+                                <span class="fs-5" title="Facturado completo: ${{ '{:,.2f}'.format(f) }}">💲✅</span>
+                            {% elif diferencia < 0 %}
+                                {# Sobre-facturado: facturado supera el valor #}
+                                <span class="fs-5"
+                                      title="Sobre-facturado — Valor: ${{ '{:,.2f}'.format(v) }} | Facturado: ${{ '{:,.2f}'.format(f) }} | Exceso: ${{ '{:,.2f}'.format(f - v) }}"
+                                      data-bs-toggle="tooltip" data-bs-placement="left">💲⚠️</span>
+                                <br>
+                                <small class="text-danger" style="font-size:.7rem;">
+                                    +${{ "{:,.0f}".format(f - v) }}
+                                </small>
+                            {% else %}
+                                {# Facturación incompleta #}
+                                <span class="fs-5"
+                                      title="Pendiente — Valor: ${{ '{:,.2f}'.format(v) }} | Facturado: ${{ '{:,.2f}'.format(f) }} | Resta: ${{ '{:,.2f}'.format(diferencia) }}"
+                                      data-bs-toggle="tooltip" data-bs-placement="left">💲❌</span>
+                                <br>
+                                <small class="text-danger" style="font-size:.7rem;">
+                                    -${{ "{:,.0f}".format(diferencia) }}
+                                </small>
+                            {% endif %}
+                        </td>
+
+                        <!-- 9. ACCIONES -->
                         <td class="text-center">
                             <div class="btn-group btn-group-sm" role="group">
                                 <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
                                    class="btn btn-outline-info btn-sm" title="Ver contrato">👁️</a>
-
                                 <a href="{{ url_for('contracts.edit_contract', id=contract.id) }}"
                                    class="btn btn-outline-warning btn-sm" title="Editar contrato">✏️</a>
-
-                                <button type="button"
-                                        class="btn btn-outline-danger btn-sm"
+                                <button type="button" class="btn btn-outline-danger btn-sm"
                                         title="Eliminar contrato"
                                         onclick="confirmDelete({{ contract.id }}, '{{ contract.contract_number }}', '{{ contract.title }}')">
                                     🗑️
                                 </button>
-
                                 {% set doc_count = contract.documents.count() %}
                                 {% if doc_count > 0 %}
                                     <a href="{{ url_for('documents.contract_documents', contract_id=contract.id) }}"
@@ -259,17 +277,15 @@
                             </div>
                         </td>
 
-                        <!-- 9. HITOS -->
+                        <!-- 10. HITOS -->
                         <td class="text-center">
                             {% if ms_total == 0 %}
-                                {# Sin hitos: botón para crear el primero #}
                                 <a href="{{ url_for('contracts.new_milestone', id=contract.id) }}"
                                    class="btn btn-outline-secondary btn-sm"
                                    title="Sin hitos — clic para crear">
                                     🚩 <span class="text-muted" style="font-size:.75rem;">Ninguno</span>
                                 </a>
                             {% else %}
-                                {# Con hitos: popover con desglose + enlace a la vista del contrato #}
                                 <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
                                    class="text-decoration-none"
                                    data-bs-toggle="popover"
@@ -280,8 +296,7 @@
                                    data-bs-content="
                                        <div style='font-size:.85rem; min-width:140px;'>
                                            <div class='d-flex justify-content-between mb-1'>
-                                               <span>Total:</span>
-                                               <strong>{{ ms_total }}</strong>
+                                               <span>Total:</span><strong>{{ ms_total }}</strong>
                                            </div>
                                            <div class='d-flex justify-content-between mb-1'>
                                                <span class='text-success'>✔ Completados:</span>
@@ -292,27 +307,12 @@
                                                <strong class='text-warning'>{{ ms_pending }}</strong>
                                            </div>
                                        </div>">
-
-                                    {# Ícono principal con badge de total #}
-                                    <span class="badge bg-primary rounded-pill me-1"
-                                          style="font-size:.75rem;" title="{{ ms_total }} hito(s) en total">
-                                        🚩 {{ ms_total }}
-                                    </span>
-
-                                    {# Badge de completados (solo si hay alguno) #}
+                                    <span class="badge bg-primary rounded-pill me-1" style="font-size:.75rem;">🚩 {{ ms_total }}</span>
                                     {% if ms_done > 0 %}
-                                        <span class="badge bg-success rounded-pill"
-                                              style="font-size:.7rem;" title="{{ ms_done }} completado(s)">
-                                            ✔ {{ ms_done }}
-                                        </span>
+                                        <span class="badge bg-success rounded-pill" style="font-size:.7rem;">✔ {{ ms_done }}</span>
                                     {% endif %}
-
-                                    {# Badge de pendientes con alerta si hay vencidos #}
                                     {% if ms_pending > 0 %}
-                                        <span class="badge bg-warning text-dark rounded-pill"
-                                              style="font-size:.7rem;" title="{{ ms_pending }} pendiente(s)">
-                                            ⏳ {{ ms_pending }}
-                                        </span>
+                                        <span class="badge bg-warning text-dark rounded-pill" style="font-size:.7rem;">⏳ {{ ms_pending }}</span>
                                     {% endif %}
                                 </a>
                             {% endif %}
@@ -332,50 +332,30 @@
         <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
             <a class="page-link"
                href="{% if pagination.has_prev %}{{ url_for('contracts.index',
-                   page=pagination.prev_num,
-                   sort=request.args.get('sort',''),
-                   dir=request.args.get('dir','asc'),
-                   status=request.args.get('status',''),
-                   counterparty=request.args.get('counterparty',''),
-                   contract_number=request.args.get('contract_number',''),
-                   title=request.args.get('title',''),
-                   start_date=request.args.get('start_date','')) }}{% else %}#{% endif %}">
-                Anterior
-            </a>
+                   page=pagination.prev_num, sort=request.args.get('sort',''), dir=request.args.get('dir','asc'),
+                   status=request.args.get('status',''), counterparty=request.args.get('counterparty',''),
+                   contract_number=request.args.get('contract_number',''), title=request.args.get('title',''),
+                   start_date=request.args.get('start_date','')) }}{% else %}#{% endif %}">Anterior</a>
         </li>
-
         {% for page in pagination.iter_pages() %}
             {% if page %}
                 <li class="page-item {% if page == pagination.page %}active{% endif %}">
                     <a class="page-link"
-                       href="{{ url_for('contracts.index',
-                           page=page,
-                           sort=request.args.get('sort',''),
-                           dir=request.args.get('dir','asc'),
-                           status=request.args.get('status',''),
-                           counterparty=request.args.get('counterparty',''),
-                           contract_number=request.args.get('contract_number',''),
-                           title=request.args.get('title',''),
-                           start_date=request.args.get('start_date','')) }}">
-                        {{ page }}
-                    </a>
+                       href="{{ url_for('contracts.index', page=page,
+                           sort=request.args.get('sort',''), dir=request.args.get('dir','asc'),
+                           status=request.args.get('status',''), counterparty=request.args.get('counterparty',''),
+                           contract_number=request.args.get('contract_number',''), title=request.args.get('title',''),
+                           start_date=request.args.get('start_date','')) }}">{{ page }}</a>
                 </li>
             {% endif %}
         {% endfor %}
-
         <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
             <a class="page-link"
                href="{% if pagination.has_next %}{{ url_for('contracts.index',
-                   page=pagination.next_num,
-                   sort=request.args.get('sort',''),
-                   dir=request.args.get('dir','asc'),
-                   status=request.args.get('status',''),
-                   counterparty=request.args.get('counterparty',''),
-                   contract_number=request.args.get('contract_number',''),
-                   title=request.args.get('title',''),
-                   start_date=request.args.get('start_date','')) }}{% else %}#{% endif %}">
-                Siguiente
-            </a>
+                   page=pagination.next_num, sort=request.args.get('sort',''), dir=request.args.get('dir','asc'),
+                   status=request.args.get('status',''), counterparty=request.args.get('counterparty',''),
+                   contract_number=request.args.get('contract_number',''), title=request.args.get('title',''),
+                   start_date=request.args.get('start_date','')) }}{% else %}#{% endif %}">Siguiente</a>
         </li>
     </ul>
 </nav>
@@ -431,7 +411,7 @@
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
                 <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>¿Estás seguro de que deseas eliminar el contrato?</p>
@@ -452,18 +432,18 @@
 
 {% block scripts %}
 <script>
-// Confirmación de eliminación
 function confirmDelete(contractId, contractNumber, contractTitle) {
     document.getElementById('contractInfo').textContent = contractNumber + ' - ' + contractTitle;
     document.getElementById('deleteForm').action = '/contracts/' + contractId + '/delete';
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    deleteModal.show();
+    new bootstrap.Modal(document.getElementById('deleteModal')).show();
 }
-
-// Inicializar popovers de hitos
 document.addEventListener('DOMContentLoaded', function () {
-    const popoverTriggers = document.querySelectorAll('[data-bs-toggle="popover"]');
-    popoverTriggers.forEach(el => new bootstrap.Popover(el, { sanitize: false }));
+    // Popovers de hitos
+    document.querySelectorAll('[data-bs-toggle="popover"]')
+        .forEach(el => new bootstrap.Popover(el, { sanitize: false }));
+    // Tooltips de facturación
+    document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        .forEach(el => new bootstrap.Tooltip(el));
 });
 </script>
 {% endblock %}

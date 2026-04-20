@@ -69,6 +69,35 @@
                                 <h4 class="text-info">${{ "{:,.2f}".format(contract.facturacion) }}</h4>
                             </div>
                             {% endif %}
+                            {% if contract.value %}
+                            {% set v = contract.value | float(0) %}
+                            {% set f = contract.facturado | float(0) %}
+                            {% set diferencia = v - f %}
+                            <div class="mb-0">
+                                <label class="form-label fw-normal fs-5">Facturado:</label>
+                                <div class="d-flex align-items-center gap-2 mt-1">
+                                    <h5 class="mb-0 {% if diferencia == 0 %}text-success{% elif diferencia < 0 %}text-warning{% else %}text-danger{% endif %}">
+                                        ${{ "{:,.2f}".format(f) }}
+                                    </h5>
+                                    {% if diferencia == 0 %}
+                                        <span class="fs-5" title="Completamente facturado">💲✅</span>
+                                    {% elif diferencia < 0 %}
+                                        <span class="fs-5" title="Sobre-facturado por ${{ '{:,.2f}'.format(f - v) }}">💲⚠️</span>
+                                    {% else %}
+                                        <span class="fs-5" title="Pendiente de facturar: ${{ '{:,.2f}'.format(diferencia) }}">💲❌</span>
+                                    {% endif %}
+                                </div>
+                                {% if diferencia != 0 %}
+                                <small class="{% if diferencia < 0 %}text-warning{% else %}text-danger{% endif %}">
+                                    {% if diferencia < 0 %}
+                                        Exceso: +${{ "{:,.2f}".format(f - v) }}
+                                    {% else %}
+                                        Resta: -${{ "{:,.2f}".format(diferencia) }}
+                                    {% endif %}
+                                </small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-4">
@@ -238,7 +267,7 @@
                                             {% endif %}
                                         </div>
                                         <div class="d-flex gap-1 flex-wrap" style="min-width: 110px;">
-                                            {# Completar y Editar: solo si el hito NO está completado #}
+                                            {# Completar y Editar: solo si NO está completado #}
                                             {% if not milestone.completed %}
                                                 <a href="{{ url_for('contracts.complete_milestone',
                                                            contract_id=contract.id,
@@ -255,7 +284,7 @@
                                                 </a>
                                             {% endif %}
 
-                                            {# Eliminar: disponible para TODOS los hitos sin importar su estado #}
+                                            {# Eliminar: disponible para TODOS los hitos #}
                                             <button type="button"
                                                     class="btn btn-danger btn-sm"
                                                     onclick="confirmDeleteMilestone(
@@ -383,23 +412,24 @@
 </div>
 
 <!-- Modal de confirmación de eliminación de hito -->
-<div class="modal fade" id="deleteMilestoneModal" tabindex="-1" aria-labelledby="deleteMilestoneModalLabel" aria-hidden="true">
+<div class="modal fade" id="deleteMilestoneModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="deleteMilestoneModalLabel">
+                <h5 class="modal-title">
                     <i class="fas fa-exclamation-triangle me-2"></i>Confirmar eliminación de hito
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>¿Estás seguro de que deseas eliminar el siguiente hito?</p>
                 <div class="alert alert-secondary py-2 mb-2">
-                    <strong id="deleteMilestoneTitle"></strong>
-                    <br>
+                    <strong id="deleteMilestoneTitle"></strong><br>
                     <small>Estado actual: <span id="deleteMilestoneStatus" class="fw-semibold"></span></small>
                 </div>
-                <p class="text-danger mb-0"><small><i class="fas fa-exclamation-circle me-1"></i>Esta acción no se puede deshacer.</small></p>
+                <p class="text-danger mb-0">
+                    <small><i class="fas fa-exclamation-circle me-1"></i>Esta acción no se puede deshacer.</small>
+                </p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
@@ -418,22 +448,18 @@
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Alternar entre vista de tarjetas y timeline
     document.getElementById('card-view').addEventListener('change', function() {
         if (this.checked) {
             document.getElementById('cards-container').style.display = 'block';
             document.getElementById('timeline-container').style.display = 'none';
         }
     });
-
     document.getElementById('timeline-view').addEventListener('change', function() {
         if (this.checked) {
             document.getElementById('cards-container').style.display = 'none';
             document.getElementById('timeline-container').style.display = 'block';
         }
     });
-
-    // Animación de progreso
     document.addEventListener('DOMContentLoaded', function() {
         const progressBar = document.querySelector('.progress-bar-custom');
         if (progressBar) {
@@ -443,25 +469,16 @@
         }
     });
 
-    // Modal de confirmación para eliminar hito
     function confirmDeleteMilestone(milestoneId, milestoneTitle, milestoneStatus, deleteUrl) {
         document.getElementById('deleteMilestoneTitle').textContent = milestoneTitle;
-        document.getElementById('deleteMilestoneStatus').textContent = milestoneStatus;
-        document.getElementById('deleteMilestoneForm').action = deleteUrl;
-
-        // Colorear el badge de estado
         const statusEl = document.getElementById('deleteMilestoneStatus');
+        statusEl.textContent = milestoneStatus;
         statusEl.className = 'fw-semibold';
-        const colorMap = {
-            'Completado': 'text-success',
-            'Vencido':    'text-danger',
-            'Pendiente':  'text-warning',
-            'Próximo':    'text-warning'
-        };
+        const colorMap = { 'Completado': 'text-success', 'Vencido': 'text-danger',
+                           'Pendiente': 'text-warning', 'Próximo': 'text-warning' };
         statusEl.classList.add(colorMap[milestoneStatus] || 'text-secondary');
-
-        const modal = new bootstrap.Modal(document.getElementById('deleteMilestoneModal'));
-        modal.show();
+        document.getElementById('deleteMilestoneForm').action = deleteUrl;
+        new bootstrap.Modal(document.getElementById('deleteMilestoneModal')).show();
     }
 </script>
 

@@ -207,6 +207,7 @@ def new_contract():
             end_date=form.end_date.data if not form.indefinite_contract.data else None,
             value=form.value.data,
             facturacion=form.facturacion.data,
+            facturado=form.facturado.data,
             counterparty=form.counterparty.data,
             status=form.status.data,
             responsible_id=current_user.id,
@@ -240,6 +241,7 @@ def edit_contract(id):
         contract.end_date = form.end_date.data if not form.indefinite_contract.data else None
         contract.value = form.value.data
         contract.facturacion = form.facturacion.data
+        contract.facturado = form.facturado.data
         contract.counterparty = form.counterparty.data
         contract.status = form.status.data
 

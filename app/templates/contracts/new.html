@@ -98,6 +98,10 @@
                         {% endfor %}
                     </div>
                     <div class="mb-3">
+                        <label for="facturado" class="form-label">Facturado</label>
+                        {{ form.facturado(class="form-control", placeholder="0.00") }}
+                    </div>
+                    <div class="mb-3">
                         {{ form.status.label(class="form-label") }}
                         {{ form.status(class="form-control") }}
                         {% for error in form.status.errors %}
