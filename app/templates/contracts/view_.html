@@ -1,0 +1,141 @@
+<!-- app/templates/contracts/view.html -->
+{% extends "layout.html" %}
+
+{% block title %}Consultar contrato{% endblock %}
+
+{% block content %}
+<div class="contract-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="fas fa-file-contract me-3"></i>
+                    {{ contract.counterparty }}
+                </h1>
+<!--                <p class="mb-0 opacity-75">Contrato ID: #{{ contract.id }}</p>-->
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{{ url_for('contracts.index') }}" class="btn btn-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver a Contratos
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Información del Contrato -->
+    <div class="contract-info">
+        <div class="row">
+            <div class="col-md-6">
+                <h5><i class="fas fa-info-circle text-primary me-2"></i>Información General</h5>
+                <table class="table table-borderless">
+                    <tr>
+                        <td><strong>Título:</strong></td>
+                        <td>{{ contract.title }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Número:</strong></td>
+                        <td>{{ contract.contract_number }}</td>
+                    </tr>
+                    {% if contract.description %}
+                    <tr>
+                        <td><strong>Descripción:</strong></td>
+                        <td>{{ contract.description }}</td>
+                    </tr>
+                    {% endif %}
+<!--                    {% if contract.client %}-->
+<!--                    <tr>-->
+<!--                        <td><strong>Cliente:</strong></td>-->
+<!--                        <td>{{ contract.counterparty }}</td>-->
+<!--                    </tr>-->
+<!--                    {% endif %}-->
+                    {% if contract.start_date %}
+                    <tr>
+                        <td><strong>Fecha Inicio:</strong></td>
+                        <td>{{ contract.start_date.strftime('%d/%m/%Y') if contract.start_date else 'No definida' }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if contract.end_date %}
+                    <tr>
+                        <td><strong>Fecha Fin:</strong></td>
+                        <td>{{ contract.end_date.strftime('%d/%m/%Y') if contract.end_date else 'No definida' }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if contract.value %}
+                    <tr>
+                        <td><strong>Valor:</strong></td>
+                        <td>{{ contract.value }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if contract.facturacion %}
+                    <tr>
+                        <td><strong>Facturación:</strong></td>
+                        <td>{{ contract.facturacion }}</td>
+                    </tr>
+                    {% endif %}
+
+                    <tr>
+                        <td><strong>Hitos:</strong></td>
+                        <td>{{ milestones }}</td>
+                    </tr>
+
+                </table>
+            </div>
+            <div class="col-md-6">
+
+                <h5><i class="fas fa-chart-pie text-success me-2"></i>Estado del Proyecto</h5>
+                {% set total_milestones = contract.milestone|length %}
+                {% set completed_milestones = contract.milestone|selectattr('status', 'equalto', 'completed')|list|length %}
+
+                <div class="progress mb-3" style="height: 25px;">
+
+                    {% if total_milestones > 0 %}
+                        {% set progress_percent = (completed_milestones / total_milestones * 100)|round %}
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {{ progress_percent }}%"
+                             aria-valuenow="{{ progress_percent }}"
+                             aria-valuemin="0" aria-valuemax="100">
+                            {{ progress_percent }}%
+                        </div>
+                    {% else %}
+                        <div class="progress-bar bg-secondary" role="progressbar" style="width: 100%">
+                            Sin hitos definidos
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="row text-center">
+                    <div class="col-4">
+                        <div class="border rounded p-2">
+                            <h6 class="text-primary mb-1">{{ total_milestones }}</h6>
+                            <small class="text-muted">Total Hitos</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="border rounded p-2">
+                            <h6 class="text-success mb-1">{{ completed_milestones }}</h6>
+                            <small class="text-muted">Completados</small>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="border rounded p-2">
+                            <h6 class="text-warning mb-1">{{ total_milestones - completed_milestones }}</h6>
+                            <small class="text-muted">Pendientes</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <a href="{{ url_for('contracts.new_milestone', id=contract.id) }}" class="btn btn-info">
+                        <i class="fas fa-center"></i>Registrar hito
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer text-center">
+        <p>Quieres visualizar los hitos existentes? <a href="{{ url_for('contracts.view_milestone', id=contract.id) }}">Hitos</a></p>
+    </div>
+</div>
+
+{% endblock %}

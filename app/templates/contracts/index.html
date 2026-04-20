@@ -1,0 +1,272 @@
+{% extends "layout.html" %}
+
+{% block title %}Contratos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Gestión de Contratos</h2>
+    <a href="{{ url_for('contracts.new_contract') }}" class="btn btn-primary">
+        Nuevo Contrato
+    </a>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('contracts.index') }}" class="row g-3">
+            <div class="col-md-4">
+                <label for="status" class="form-label">Filtrar por Estado</label>
+                <select class="form-select" id="status" name="status" onchange="this.form.submit()">
+                    <option value="">Todos los estados</option>
+                    <option value="activo" {% if request.args.get('status') == 'activo' %}selected{% endif %}>Activo</option>
+                    <option value="finalizado" {% if request.args.get('status') == 'finalizado' %}selected{% endif %}>Finalizado</option>
+                    <option value="cancelado" {% if request.args.get('status') == 'cancelado' %}selected{% endif %}>Cancelado</option>
+                    <option value="en_revision" {% if request.args.get('status') == 'en_revision' %}selected{% endif %}>En Revisión</option>
+                    <option value="suspendido" {% if request.args.get('status') == 'suspendido' %}selected{% endif %}>Suspendido</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alertas de contratos próximos a vencer -->
+{% if expiring_soon %}
+<div class="alert alert-warning alert-dismissible fade show" role="alert">
+    <h5 class="alert-heading">⚠️ Contratos próximos a vencer ({{ expiring_soon|length }})</h5>
+    <hr>
+    {% for contract in expiring_soon %}
+    <div class="mb-2">
+        <a href="{{ url_for('contracts.view_contract', id=contract.id) }}" class="text-decoration-none">
+            <strong>{{ contract.counterparty }}</strong> - {{ contract.title }}
+            <span class="badge bg-danger">Vence: {{ contract.end_date.strftime('%d/%m/%Y') }}</span>
+        </a>
+    </div>
+    {% endfor %}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+{% endif %}
+
+<!-- Tabla de contratos con orden reorganizado -->
+{% if contracts %}
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">Listado de Contratos</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <!-- NUEVO ORDEN: Cliente → Fecha Inicio → Título → Número -->
+                        <th scope="col" width="20%">Cliente / Contraparte</th>
+                        <th scope="col" width="13%">Número de Contrato</th>
+                        <th scope="col" width="22%">Título del Contrato</th>
+                        <th scope="col" width="12%">Fecha Inicio</th>
+                        <th scope="col" width="12%">Fecha Fin</th>
+                        <th scope="col" width="10%">Valor</th>
+                        <th scope="col" width="8%">Estado</th>
+                        <th scope="col" width="3%">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contract in contracts %}
+                    <tr>
+                        <!-- 1. CLIENTE / CONTRAPARTE (primero) -->
+                        <td><strong>{{ contract.counterparty }}</strong></td>
+
+                        <!-- 2. FECHA DE INICIO (segundo) -->
+                        <td>{{ contract.start_date.strftime('%d/%m/%Y') }}</td>
+
+                        <!-- 3. TÍTULO (tercero) -->
+                        <td>
+                            <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
+                               class="text-decoration-none">
+                                {{ contract.title }}
+                            </a>
+                        </td>
+
+                        <!-- 4. NÚMERO DE CONTRATO (cuarto) -->
+                        <td>
+                            <span class="badge bg-info text-dark">
+                                {{ contract.contract_number }}
+                            </span>
+                        </td>
+
+                        <!-- 5. FECHA FIN (quinto) -->
+                        <td>{{ contract.end_date.strftime('%d/%m/%Y') if contract.end_date else 'Sin fecha' }}</td>
+
+                        <!-- 6. VALOR (sexto) -->
+                        <td>
+                            {% if contract.value %}
+                                ${{ "{:,.2f}".format(contract.value) }}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 7. ESTADO (séptimo) -->
+                        <td>
+                            {% if contract.status == 'activo' %}
+                                <span class="badge bg-success">Activo</span>
+                            {% elif contract.status == 'finalizado' %}
+                                <span class="badge bg-secondary">Finalizado</span>
+                            {% elif contract.status == 'cancelado' %}
+                                <span class="badge bg-danger">Cancelado</span>
+                            {% elif contract.status == 'en_revision' %}
+                                <span class="badge bg-warning text-dark">En Revisión</span>
+                            {% elif contract.status == 'suspendido' %}
+                                <span class="badge bg-dark">Suspendido</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ contract.status }}</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- 8. ACCIONES (octavo) -->
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
+                                   class="btn btn-outline-info btn-sm" title="Ver">
+                                    👁️
+                                </a>
+                                <a href="{{ url_for('contracts.edit_contract', id=contract.id) }}"
+                                   class="btn btn-outline-warning btn-sm" title="Editar">
+                                    ✏️
+                                </a>
+                                <button type="button"
+                                        class="btn btn-outline-danger btn-sm"
+                                        title="Eliminar"
+                                        onclick="confirmDelete({{ contract.id }}, '{{ contract.contract_number }}', '{{ contract.title }}')">
+                                    ⛔
+                                </button>
+{#                                <form method="POST" action="{{ url_for('contracts.delete_contract', id=contract.id) }}" style="display: inline;">#}
+{#                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar"#}
+{#                                            onclick="return confirm('¿Estás seguro de que deseas eliminar el contrato {{ contract.contract_number }}?');">#}
+{#                                        ⛔#}
+{#                                    </button>#}
+{#                                </form>#}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Paginación -->
+{% if pagination.pages > 1 %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+            <a class="page-link"
+               href="{% if pagination.has_prev %}{{ url_for('contracts.index', page=pagination.prev_num, status=request.args.get('status', '')) }}{% else %}#{% endif %}">
+                Anterior
+            </a>
+        </li>
+
+        {% for page in pagination.iter_pages() %}
+            {% if page %}
+                <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                    <a class="page-link"
+                       href="{{ url_for('contracts.index', page=page, status=request.args.get('status', '')) }}">
+                        {{ page }}
+                    </a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+            <a class="page-link"
+               href="{% if pagination.has_next %}{{ url_for('contracts.index', page=pagination.next_num, status=request.args.get('status', '')) }}{% else %}#{% endif %}">
+                Siguiente
+            </a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info text-center">
+    <h4>No hay contratos registrados</h4>
+    <p>No se encontraron contratos.</p>
+    <a href="{{ url_for('contracts.new_contract') }}" class="btn btn-primary">Crear el primer contrato</a>
+</div>
+{% endif %}
+
+<!-- Resumen de estadísticas -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>Activos</h5>
+                <h2>{{ contracts|selectattr('status', 'equalto', 'activo')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5>En Revisión</h5>
+                <h2>{{ contracts|selectattr('status', 'equalto', 'en_revision')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h5>Finalizados</h5>
+                <h2>{{ contracts|selectattr('status', 'equalto', 'finalizado')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h5>Por vencer</h5>
+                <h2>{{ expiring_soon|length if expiring_soon else 0 }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal de confirmación de eliminación -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar el contrato?</p>
+                <p><strong id="contractInfo"></strong></p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(contractId, contractNumber, contractTitle) {
+    // Actualizar información en el modal
+    document.getElementById('contractInfo').textContent = contractNumber + ' - ' + contractTitle;
+
+    // Actualizar la acción del formulario
+    document.getElementById('deleteForm').action = '/contracts/' + contractId + '/delete';
+
+    // Mostrar el modal
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+}
+</script>
+{% endblock %}

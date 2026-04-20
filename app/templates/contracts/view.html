@@ -1,0 +1,402 @@
+<!-- app/templates/contracts/view.html -->
+{% extends "layout.html" %}
+
+{% block title %}Consultar contrato{% endblock %}
+
+{% block content %}
+
+<!-- Template: contracts/view.html - Sección de Milestones -->
+<div class="container-fluid py-4">
+    <!-- Encabezado del Contrato -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="mb-1">{{ contract.counterparty }}</h2>
+            <p class="text-muted">Contrato #{{ contract.title }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('contracts.index', id=contract.id) }}"
+               class="btn btn-primary">
+                <i class="fas fa-plus"></i> Volver
+            </a>
+            <a href="{{ url_for('documents.upload_document', contract_id=contract.id) }}"
+               class="btn btn-secundary">
+                <i class="fas fa-plus me-2"></i>Subir Documento
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del Contrato (Principal) -->
+    <div class="row mb-4">
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Información del Contrato</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold fs-5">Número de Contrato:</label>
+                                <h5 class="text-muted">#{{ contract.contract_number }}</h5>
+                            </div>
+                            {% if contract.description %}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold fs-5">Descripción:</label>
+                                <p class="fs-6">{{ contract.description }}</p>
+                            </div>
+                            {% endif %}
+                            {% if contract.value %}
+                            <div class="mb-0">
+                                <label class="form-label fw-bold fs-5">Valor del Contrato:</label>
+                                <h4 class="text-success">${{ "{:,.2f}".format(contract.value) }}</h4>
+                            </div>
+                            {% endif %}
+                            {% if contract.payment_period %}
+                            <div class="mb-0">
+                                <label class="form-label fw-bold fs-5">Periodo de pago:</label>
+                                <h4 class="text-success">${{ "{:,.2f}".format(contract.payment_period) }}</h4>
+                            </div>
+                            {% endif %}
+                            {% if contract.payment_entry %}
+                            <div class="mb-0">
+                                <label class="form-label fw-bold fs-5">Ingreso a pago:</label>
+                                <h4 class="text-success">${{ "{:,.2f}".format(contract.payment_entry) }}</h4>
+                            </div>
+                            {% endif %}
+                            {% if contract.facturacion %}
+                            <div class="mb-0">
+                                <label class="form-label fw-normal fs-4">Facturación:</label>
+                                <h4 class="text-info">${{ "{:,.2f}".format(contract.facturacion) }}</h4>
+                            </div>
+                            {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold fs-5">Fecha de inicio:</label>
+                                    <h5>{{ contract.start_date.strftime('%d/%m/%Y') }}</h5>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold fs-5">Fecha de fin:</label>
+                                <h5>
+                                    {% if contract.indefinite_contract %}
+                                    <span class="badge bg-info text-dark">
+                                        <i class="fas fa-infinity me-1"></i>Contrato indefinido
+                                    </span>
+                                    {% elif contract.end_date %}
+                                        {{ contract.end_date.strftime('%d/%m/%Y') }}
+                                    {% else %}
+                                    <span class="text-muted">
+                                        <i class="fas fa-question-circle me-1"></i>No especificada
+                                    </span>
+                                    {% endif %}
+                                </h5>
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label fw-bold fs-5">Estado:</label>
+                                <h5>
+                                    <span class="badge bg-{{ 'success' if contract.status == 'activo' else 'secondary' }} fs-6 px-3 py-2">
+                                        {{ contract.status|title }}
+                                    </span>
+                                </h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen de Hitos (Lateral) -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">Resumen de Hitos</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-0">{{ contract.milestones.count() }}</h4>
+                                    <small class="text-muted">Total</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success mb-0">{{ contract.milestones.filter_by(completed=True).count() }}</h4>
+                                <small class="text-muted">Completados</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mini progreso -->
+                    {% set completed = contract.milestones.filter_by(completed=True).count() %}
+                    {% set total = contract.milestones.count() %}
+                    {% set progress_percent = ((completed / total * 100) if total > 0 else 0)|round(1) %}
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Progreso</small>
+                            <small class="text-muted">{{ progress_percent }}%</small>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: {{ progress_percent }}%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Próximos hitos compactos -->
+                    {% set upcoming_milestones = contract.milestones.filter_by(completed=False).order_by('due_date').limit(2) %}
+                    {% if upcoming_milestones.count() > 0 %}
+                    <div class="mb-0">
+                        <small class="text-muted fw-bold">Próximos vencimientos:</small>
+                        {% for milestone in upcoming_milestones %}
+                        <div class="d-flex justify-content-between align-items-center {% if not loop.last %}mb-2{% endif %}">
+                            <div>
+                                <div class="fw-bold" style="font-size: 0.85rem;">{{ milestone.title[:20] }}{% if milestone.title|length > 20 %}...{% endif %}</div>
+                                <small class="text-muted">{{ milestone.due_date.strftime('%d/%m') }}</small>
+                            </div>
+                            <div>
+                                {% if milestone.due_date < today %}
+                                    <span class="badge bg-danger" style="font-size: 0.7rem;">Vencido</span>
+                                {% elif (milestone.due_date - today).days <= 7 %}
+                                    <span class="badge bg-warning" style="font-size: 0.7rem;">{{ (milestone.due_date - today).days }}d</span>
+                                {% else %}
+                                    <span class="badge bg-primary" style="font-size: 0.7rem;">{{ (milestone.due_date - today).days }}d</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Hitos (Secundaria) -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0 text-muted">Hitos del Contrato</h6>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="view-options" id="card-view" checked>
+                            <label class="btn btn-outline-secondary" for="card-view">
+                                <i class="fas fa-th-large"></i> Tarjetas
+                            </label>
+                            <input type="radio" class="btn-check" name="view-options" id="timeline-view">
+                            <label class="btn btn-outline-secondary" for="timeline-view">
+                                <i class="fas fa-timeline"></i> Timeline
+                            </label>
+                        </div>
+                        <a href="{{ url_for('contracts.new_milestone', id=contract.id) }}"
+                           class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus"></i> Nuevo Hito
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+                    <!-- Vista de Tarjetas -->
+                    <div id="cards-container">
+                        {% if contract.milestones.count() > 0 %}
+                            {% for milestone in contract.milestones.order_by('due_date') %}
+                            <div class="milestone-card card mb-2
+                                {% if milestone.completed %}milestone-completed
+                                {% elif milestone.due_date < today %}milestone-overdue
+                                {% elif (milestone.due_date - today).days <= 7 %}milestone-due-soon{% endif %}"
+                                style="border-width: 2px;">
+                                <div class="card-body py-2 px-3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div class="flex-grow-1 me-3">
+                                            <h6 class="card-title d-flex align-items-center mb-1" style="font-size: 0.9rem;">
+                                                {% if milestone.completed %}
+                                                    <i class="fas fa-check-circle text-success me-2"></i>
+                                                {% else %}
+                                                    <i class="far fa-circle text-muted me-2"></i>
+                                                {% endif %}
+                                                {{ milestone.title }}
+                                            </h6>
+                                            <p class="card-text text-muted mb-1" style="font-size: 0.8rem;">
+                                                {{ milestone.description[:50] }}{% if milestone.description|length > 50 %}...{% endif %}
+                                            </p>
+                                            <small class="text-muted" style="font-size: 0.75rem;">
+                                                <i class="fas fa-calendar-alt me-1"></i>
+                                                {{ milestone.due_date.strftime('%d/%m/%Y') }}
+                                                {% if milestone.completed %}
+                                                    | Completado: {{ milestone.completed_date.strftime('%d/%m/%Y') }}
+                                                {% endif %}
+                                            </small>
+                                        </div>
+                                        <div class="text-center me-3" style="min-width: 100px;">
+                                            {% if milestone.completed %}
+                                                <span class="badge bg-success status-badge">Completado</span>
+                                            {% elif milestone.due_date < today %}
+                                                <span class="badge bg-danger status-badge">Vencido</span>
+                                            {% elif (milestone.due_date - today).days <= 7 %}
+                                                <span class="badge bg-warning status-badge">Próximo</span>
+                                            {% else %}
+                                                <span class="badge bg-primary status-badge">Pendiente</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex gap-1" style="min-width: 100px;">
+                                            {% if not milestone.completed %}
+                                                <a href="{{ url_for('contracts.complete_milestone',
+                                                           contract_id=contract.id,
+                                                           milestone_id=milestone.id) }}"
+                                                    class="btn btn-sm btn-outline-success"
+                                                    onclick="return confirm('¿Marcar como completado?')">
+                                                    <i class="fas fa-check"></i>Completar
+                                                </a>
+                                                <a href="{{ url_for('contracts.edit_milestone',
+                                                            contract_id=contract.id,
+                                                            milestone_id=milestone.id) }}"
+                                                    class="btn btn-secondary btn-sm">Editar
+                                                </a>
+                                                <form action="{{ url_for('contracts.delete_milestone', contract_id=contract.id, milestone_id=milestone.id) }}" method="post">
+                                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que quieres eliminar este hito?');">Eliminar
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#milestoneModal{{ milestone.id }}">
+                                                <i class="fas fa-eye"></i>Ver detalles
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Modal para ver detalles del hito -->
+                            <div class="modal fade" id="milestoneModal{{ milestone.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">{{ milestone.title }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Descripción:</label>
+                                                <p>{{ milestone.description or 'Sin descripción' }}</p>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Fecha de vencimiento:</label>
+                                                <p>{{ milestone.due_date.strftime('%d/%m/%Y') }}</p>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Estado:</label>
+                                                <p>
+                                                    {% if milestone.completed %}
+                                                        <span class="badge bg-success">Completado el {{ milestone.completed_date.strftime('%d/%m/%Y') }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning">Pendiente</span>
+                                                    {% endif %}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            {% if not milestone.completed %}
+                                                <a href="{{ url_for('contracts.complete_milestone',
+                                                           contract_id=contract.id,
+                                                           milestone_id=milestone.id) }}"
+                                                   class="btn btn-success"
+                                                   onclick="return confirm('¿Marcar este hito como completado?')">
+                                                    <i class="fas fa-check"></i> Marcar como completado
+                                                </a>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-flag fa-2x text-muted mb-2"></i>
+                                <h6 class="text-muted">No hay hitos definidos</h6>
+                                <p class="text-muted" style="font-size: 0.85rem;">Agrega hitos para organizar mejor este contrato</p>
+                                <a href="{{ url_for('contracts.new_milestone', id=contract.id) }}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-plus"></i> Crear primer hito
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Vista de Timeline compacta -->
+                    <div id="timeline-container" style="display: none;">
+                        {% if contract.milestones.count() > 0 %}
+                            <div class="timeline">
+                                {% for milestone in contract.milestones.order_by('due_date') %}
+                                <div class="timeline-item
+                                    {% if milestone.completed %}completed
+                                    {% elif milestone.due_date < today %}overdue{% endif %}">
+                                    <div class="card" style="border-width: 1px;">
+                                        <div class="card-body py-2 px-3">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1" style="font-size: 0.9rem;">{{ milestone.title }}</h6>
+                                                    <p class="text-muted mb-1" style="font-size: 0.8rem;">
+                                                        {{ milestone.description[:40] }}{% if milestone.description|length > 40 %}...{% endif %}
+                                                    </p>
+                                                    <small class="text-muted" style="font-size: 0.75rem;">
+                                                        <i class="fas fa-calendar-alt me-1"></i>
+                                                        {{ milestone.due_date.strftime('%d/%m/%Y') }}
+                                                    </small>
+                                                </div>
+                                                <div>
+                                                    {% if milestone.completed %}
+                                                        <span class="badge bg-success" style="font-size: 0.7rem;">Completado</span>
+                                                    {% elif milestone.due_date < today %}
+                                                        <span class="badge bg-danger" style="font-size: 0.7rem;">Vencido</span>
+                                                    {% else %}
+                                                        <span class="badge bg-primary" style="font-size: 0.7rem;">Pendiente</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer text-center">
+        <p>Quieres visualizar los contratos existentes? <a href="{{ url_for('contracts.index') }}">Contratos</a></p>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Alternar entre vista de tarjetas y timeline
+    document.getElementById('card-view').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('cards-container').style.display = 'block';
+            document.getElementById('timeline-container').style.display = 'none';
+        }
+    });
+
+    document.getElementById('timeline-view').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('cards-container').style.display = 'none';
+            document.getElementById('timeline-container').style.display = 'block';
+        }
+    });
+
+    // Animación de progreso
+    document.addEventListener('DOMContentLoaded', function() {
+        const progressBar = document.querySelector('.progress-bar-custom');
+        const width = progressBar.style.width;
+        progressBar.style.width = '0%';
+        setTimeout(() => {
+            progressBar.style.width = width;
+        }, 100);
+    });
+</script>
+
+{% endblock %}

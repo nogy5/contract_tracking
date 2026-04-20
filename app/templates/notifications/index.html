@@ -1,0 +1,340 @@
+<!-- app/templates/notifications/index.html -->
+{% extends "layout.html" %}
+
+{% block title %}Notificaciones{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Notificaciones</h2>
+    {% if notifications %}
+        <a href="{{ url_for('notifications.mark_all_read') }}" class="btn btn-primary">Marcar todas como leídas</a>
+    {% endif %}
+</div>
+
+<!-- Filtros -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse">
+                Filtros <i class="fas fa-filter"></i>
+            </button>
+        </h5>
+    </div>
+    <div id="filtersCollapse" class="collapse {{ 'show' if request.args.get('search') or request.args.get('title') or request.args.get('message') or request.args.get('created_at') }}">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('notifications.index') }}">
+                <div class="row">
+                    <!-- Búsqueda por texto -->
+                    <div class="col-md-6 mb-3">
+                        <label for="search" class="form-label">Buscar por título</label>
+                        <input type="text" class="form-control" id="search" name="search"
+                               value="{{ request.args.get('search', '') }}"
+                               placeholder="Título">
+                    </div>
+
+                    <!-- Filtro por leída -->
+                    <div class="col-md-6 mb-3">
+                        <label for="read" class="form-label">Leída</label>
+                        <select class="form-select" id="read" name="read">
+                            <option value="">Todas las opciones</option>
+                            {% for rd in read %}
+                            <option value="{{ rd }}" {{ 'selected' if request.args.get('read') == rd }}>
+                                {{ rd }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Filtro por fecha de creación -->
+                    <div class="col-md-4 mb-3">
+                        <label for="created_at" class="form-label">Creado el:</label>
+                        <input type="date" class="form-control" id="created_at" name="created_at"
+                               value="{{ request.args.get('created_at', '') }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Filtrar
+                        </button>
+                        <a href="{{ url_for('notifications.index') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
+
+                        <!-- Contador de resultados -->
+                        {% if milestones %}
+                        <span class="text-muted ms-3">
+                            Mostrando {{ notifications|length }} de {{ total_notifications }} notificaciones
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Mantener parámetros de paginación -->
+                {% if request.args.get('page') %}
+                <input type="hidden" name="page" value="{{ request.args.get('page') }}">
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros activos -->
+{% if request.args.get('search') or request.args.get('title') or request.args.get('message') or request.args.get('created_at') %}
+<div class="mb-3">
+    <h6>Filtros activos:</h6>
+    <div class="d-flex flex-wrap gap-2">
+        {% if request.args.get('search') %}
+        <span class="badge bg-info">
+            Búsqueda: {{ request.args.get('search') }}
+            <a href="{{ url_for('notifications.index',
+                title=request.args.get('title'),
+                message=request.args.get('message'),
+                created_at=request.args.get('created_at'),
+                sort=request.args.get('sort'),
+                order=request.args.get('order'),
+                page=request.args.get('page')
+            ) }}" class="text-white ms-1">×</a>
+        </span>
+        {% endif %}
+
+        {% if request.args.get('title') %}
+        <span class="badge bg-warning">
+            Cliente: {{ request.args.get('title') }}
+            <a href="{{ url_for('notifications.index',
+                search=request.args.get('search'),
+                sort=request.args.get('sort'),
+                order=request.args.get('order'),
+                message=request.args.get('message'),
+                created_at=request.args.get('created_at'),
+                page=request.args.get('page')
+            ) }}" class="text-white ms-1">×</a>
+        </span>
+        {% endif %}
+
+        {% if request.args.get('created_at') %}
+        <span class="badge bg-secondary">
+            Desde: {{ request.args.get('created_at') }}
+            <a href="{{ url_for('notifications.index',
+                search=request.args.get('search'),
+                title=request.args.get('title'),
+                message=request.args.get('message'),
+                sort=request.args.get('sort'),
+                order=request.args.get('order'),
+                page=request.args.get('page')
+            ) }}" class="text-white ms-1">×</a>
+        </span>
+        {% endif %}
+
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla de notificaciones -->
+{% if notifications %}
+<div class="table-responsive">
+    <table class="table table-striped table-hover">
+        <thead>
+            <tr>
+                <th>
+                    <a href="{{ url_for('notifications.index',
+                        sort='title',
+                        order='desc' if request.args.get('sort') == 'title' and request.args.get('order') == 'asc' else 'asc',
+                        search=request.args.get('search'),
+                        title=request.args.get('title'),
+                        message=request.args.get('message'),
+                        created_at=request.args.get('created_at')
+                    ) }}" class="text-decoration-none">
+                        Título
+                        {% if request.args.get('sort') == 'title' %}
+                            <i class="fas fa-sort-{{ 'up' if request.args.get('order') == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('notifications.index',
+                        sort='message',
+                        order='asc' if request.args.get('sort') == 'contract_number' and request.args.get('order') == 'desc' else 'desc',
+                        search=request.args.get('search'),
+                        title=request.args.get('title'),
+                        message=request.args.get('message'),
+                        created_at=request.args.get('created_at'),
+                        read=request.args.get('read')
+                    ) }}" class="text-decoration-none">
+                        Mensaje
+                        {% if request.args.get('sort') == 'message' %}
+                            <i class="fas fa-sort-{{ 'up' if request.args.get('order') == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                <th>
+                    <a href="{{ url_for('notifications.index',
+                        sort='created_at',
+                        order='asc' if request.args.get('sort') == 'start_date' and request.args.get('order') == 'desc' else 'desc',
+                        search=request.args.get('search'),
+                        title=request.args.get('title'),
+                        message=request.args.get('message'),
+                        created_at=request.args.get('created_at'),
+                        read=request.args.get('read')
+                    ) }}" class="text-decoration-none">
+                        Creada
+                        {% if request.args.get('sort') == 'start_date' %}
+                            <i class="fas fa-sort-{{ 'up' if request.args.get('order') == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </a>
+                </th>
+                 <th>
+                    <a href="{{ url_for('notifications.index',
+                        sort='read',
+                        order='asc' if request.args.get('sort') == 'start_date' and request.args.get('order') == 'desc' else 'desc',
+                        search=request.args.get('read'),
+                        title=request.args.get('title'),
+                        message=request.args.get('message'),
+                        created_at=request.args.get('created_at'),
+                        read=request.args.get('read')
+                    ) }}" class="text-decoration-none">
+                        Leída
+                        {% if request.args.get('sort') == 'start_date' %}
+                            <i class="fas fa-sort-{{ 'up' if request.args.get('order') == 'asc' else 'down' }}"></i>
+                        {% else %}
+                            <i class="fas fa-sort text-muted"></i>
+                        {% endif %}
+                    </a>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for notification in notifications %}
+            <tr>
+                <td>{{ notification.title }}</td>
+                <td>{{ notification.message }}</td>
+                <td>{{ notification.created_at.strftime('%d/%m/%Y') if notification.created_at else '-' }}</td>
+                <td>{{ notification.read }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Paginación -->
+{% if pagination.pages > 1 %}
+<nav aria-label="Paginación de notificaciones">
+    <ul class="pagination justify-content-center">
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('notifications.index',
+                page=pagination.prev_num,
+                search=request.args.get('search'),
+                title=request.args.get('title'),
+                message=request.args.get('message'),
+                created_at=request.args.get('created_at'),
+                sort=request.args.get('sort'),
+                order=request.args.get('order')
+            ) }}">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page in pagination.iter_pages() %}
+            {% if page %}
+                {% if page != pagination.page %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('notifications.index',
+                        page=page,
+                        search=request.args.get('search'),
+                        title=request.args.get('title'),
+                        message=request.args.get('message'),
+                        created_at=request.args.get('created_at'),
+                        sort=request.args.get('sort'),
+                        order=request.args.get('order')
+                    ) }}">{{ page }}</a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page }}</span>
+                </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('notifications.index',
+                page=pagination.next_num,
+                search=request.args.get('search'),
+                title=request.args.get('title'),
+                message=request.args.get('message'),
+                created_at=request.args.get('created_at'),
+                sort=request.args.get('sort'),
+                order=request.args.get('order')
+            ) }}">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    {% if request.args.get('search') or request.args.get('title') or request.args.get('message') or request.args.get('created_at') %}
+        No se encontraron contratos con los filtros aplicados. <a href="{{ url_for('notifications.index') }}">Ver todas las notificaciones</a>.
+    {% else %}
+        No hay hitos registrados. <a href="{{ url_for('contracts.index') }}">Vista de contratos</a>.
+    {% endif %}
+</div>
+{% endif %}
+
+{% if expiring_soon %}
+<div class="mt-5">
+    <h3>Notificaiones no leídas</h3>
+    <div class="list-group">
+        {% for notification in unread_count > 0 %}
+        <a href="{{ url_for('notifications.index') }}" class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ notification.title }}</h5>
+                <small class="text-warning">Vence: {{ notification.created_at.strftime('%d/%m/%Y') }}</small>
+            </div>
+            <p class="mb-1">{{ notification.message }}</p>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Script para mejorar la experiencia del usuario -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-submit del formulario después de un delay al escribir
+    const searchInput = document.getElementById('search');
+    let searchTimeout;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            this.form.submit();
+        }, 500);
+    });
+
+    // Submit automático al cambiar selects
+    document.querySelectorAll('select').forEach(select => {
+        select.addEventListener('change', function() {
+            this.form.submit();
+        });
+    });
+});
+</script>
+{% endblock %}

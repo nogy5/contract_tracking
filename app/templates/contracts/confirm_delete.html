@@ -1,0 +1,93 @@
+<!-- templates/contracts/confirm_delete.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Eliminación - {{ contract.title }}</title>
+    <!-- Aquí van tus estilos CSS existentes -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-danger text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Confirmar Eliminación
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            <strong>¡Atención!</strong> Esta acción no se puede deshacer.
+                        </div>
+
+                        <p class="lead">¿Estás seguro de que deseas eliminar el siguiente contrato?</p>
+
+                        <div class="contract-details bg-light p-3 rounded mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Título:</strong><br>
+                                    {{ contract.title }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Número de Contrato:</strong><br>
+                                    {{ contract.contract_number }}
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Contraparte:</strong><br>
+                                    {{ contract.counterparty }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Estado:</strong><br>
+                                    <span class="badge
+                                        {% if contract.status == 'activo' %}bg-success
+                                        {% elif contract.status == 'inactivo' %}bg-secondary
+                                        {% elif contract.status == 'vencido' %}bg-danger
+                                        {% else %}bg-warning{% endif %}">
+                                        {{ contract.status|title }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <strong>Fecha de Inicio:</strong><br>
+                                    {{ contract.start_date.strftime('%d/%m/%Y') if contract.start_date else 'No especificada' }}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Fecha de Fin:</strong><br>
+                                    {{ contract.end_date.strftime('%d/%m/%Y') if contract.end_date else 'No especificada' }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
+                                   class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </a>
+                            </div>
+                            <div>
+                                <form method="POST" action="{{ url_for('contracts.delete_contract', id=contract.id) }}"
+                                      style="display: inline;"
+                                      onsubmit="return confirm('¿Estás completamente seguro? Esta acción eliminará permanentemente el contrato.');">
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="fas fa-trash"></i> Sí, Eliminar Contrato
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,118 @@
+<!-- app/templates/contracts/new.html -->
+{% extends "layout.html" %}
+
+{% block title %}Registrar contrato{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4>Registrar Contrato Nuevo</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {{ form.hidden_tag() }}
+                    <div class="mb-3">
+                        {{ form.counterparty.label(class="form-label") }}
+                        {{ form.counterparty(class="form-control") }}
+                        {% for error in form.counterparty.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.contract_number.label(class="form-label") }}
+                        {{ form.contract_number(class="form-control") }}
+                        {% for error in form.contract_number.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.title.label(class="form-label") }}
+                        {{ form.title(class="form-control") }}
+                        {% for error in form.title.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.description.label(class="form-label") }}
+                        {{ form.description(class="form-control") }}
+                        {% for error in form.description.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.start_date.label(class="form-label") }}
+                        {{ form.start_date(class="form-control", maxlength="8") }}
+                        {% for error in form.start_date.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.end_date.label(class="form-label") }}
+
+                        <!-- Checkbox para contrato indefinido -->
+                        <div class="form-check mb-2">
+                            {{ form.indefinite_contract(class="form-check-input", id="indefinite_checkbox", onchange="toggleEndDate()") }}
+                            {{ form.indefinite_contract.label(class="form-check-label", for="indefinite_checkbox") }}
+                        </div>
+
+                        <!-- Campo de fecha de finalización -->
+                        {{ form.end_date(class="form-control", id="end_date_field") }}
+
+                        <!-- Mostrar errores -->
+                        {% for error in form.end_date.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                        {% for error in form.indefinite_contract.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.value.label(class="form-label") }}
+                        {{ form.value(class="form-control") }}
+                        {% for error in form.value.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.payment_period.label(class="form-label") }}
+                        {{ form.payment_period(class="form-control") }}
+                        {% for error in form.payment_period.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.payment_entry.label(class="form-label") }}
+                        {{ form.payment_entry(class="form-control") }}
+                        {% for error in form.payment_entry.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.facturacion.label(class="form-label") }}
+                        {{ form.facturacion(class="form-control") }}
+                        {% for error in form.facturacion.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.status.label(class="form-label") }}
+                        {{ form.status(class="form-control") }}
+                        {% for error in form.status.errors %}
+                        <span class="text-danger">{{ error }}</span>
+                        {% endfor %}
+                    </div>
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <p>Quieres ver los contratos guardados? <a href="{{ url_for('contracts.index') }}">Consulta aquí</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

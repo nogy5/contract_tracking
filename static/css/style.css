@@ -1,0 +1,12 @@
+/* app/static/css/style.css */
+body {
+    padding-bottom: 50px;
+}
+
+.contract-detail {
+    margin-bottom: 30px;
+}
+
+.notification-unread {
+    background-color: rgba(0, 123, 255, 0.1);
+}

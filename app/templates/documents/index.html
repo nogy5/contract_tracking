@@ -1,0 +1,148 @@
+<!-- app/templates/documents/index.html -->
+{% extends "layout.html" %}
+
+{% block title %}Contratos{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header del contrato -->
+    <div class="contract-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-2">
+                    <i class="fas fa-file-contract me-2"></i>
+                    Documentos del Contrato
+                </h1>
+                <p class="mb-0 fs-5">{{ contract.title or 'Contrato #' + contract.id|string }}</p>
+            </div>
+            <div class="text-end">
+                <span class="badge bg-light text-dark fs-6">
+                    {{ documents|length }} documento{{ 's' if documents|length != 1 else '' }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mensajes Flash -->
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>{{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Botones de acción -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item">
+                    <a href="{{ url_for('contracts.index') }}" class="text-decoration-none">
+                        <i class="fas fa-home me-1"></i>Inicio
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="#" class="text-decoration-none">Contratos</a>
+                </li>
+                <li class="breadcrumb-item active">Documentos</li>
+            </ol>
+        </nav>
+
+        <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
+           class="btn btn-light">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <!-- Lista de documentos -->
+    {% if documents %}
+        <div class="row">
+            {% for document in documents %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card document-card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start">
+                                <div class="file-icon text-primary">
+                                    {% set file_ext = document.original_filename.split('.')[-1].lower() %}
+                                    {% if file_ext in ['pdf'] %}
+                                        <i class="fas fa-file-pdf text-danger"></i>
+                                    {% elif file_ext in ['doc', 'docx'] %}
+                                        <i class="fas fa-file-word text-primary"></i>
+                                    {% elif file_ext in ['xls', 'xlsx'] %}
+                                        <i class="fas fa-file-excel text-success"></i>
+                                    {% elif file_ext in ['jpg', 'jpeg', 'png'] %}
+                                        <i class="fas fa-file-image text-warning"></i>
+                                    {% elif file_ext in ['txt'] %}
+                                        <i class="fas fa-file-alt text-secondary"></i>
+                                    {% else %}
+                                        <i class="fas fa-file text-muted"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="card-title mb-2" title="{{ document.original_filename }}">
+                                        {{ document.original_filename[:30] + '...' if document.original_filename|length > 30 else document.original_filename }}
+                                    </h6>
+                                    {% if document.description %}
+                                        <p class="card-text text-muted small mb-2">
+                                            {{ document.description[:100] + '...' if document.description|length > 100 else document.description }}
+                                        </p>
+                                    {% endif %}
+                                    <div class="file-size mb-3">
+                                        <i class="fas fa-weight me-1"></i>
+                                        {% set size_mb = (document.file_size / 1024 / 1024) %}
+                                        {% if size_mb < 1 %}
+                                            {{ "%.0f"|format(document.file_size / 1024) }} KB
+                                        {% else %}
+                                            {{ "%.2f"|format(size_mb) }} MB
+                                        {% endif %}
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{{ url_for('documents.download_document', id=document.id) }}"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-download me-1"></i>Descargar
+                                        </a>
+                                        <a href="{{ url_for('documents.delete_document', id=document.id) }}"
+                                           class="btn btn-sm btn-outline-danger"
+                                           onclick="return confirm('¿Estás seguro de que quieres eliminar este documento?')">
+                                            <i class="fas fa-trash me-1"></i>Eliminar
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>
+                                Subido: {{ moment(document.created_at).format('DD/MM/YYYY HH:mm') if document.created_at else 'Fecha no disponible' }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Estado vacío -->
+        <div class="empty-state">
+            <div class="mb-4">
+                <i class="fas fa-folder-open" style="font-size: 4rem; color: #dee2e6;"></i>
+            </div>
+            <h3 class="mb-3">No hay documentos</h3>
+            <p class="mb-4">Este contrato aún no tiene documentos asociados.</p>
+            <a href="{{ url_for('documents.upload_document', contract_id=contract.id) }}"
+               class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>Subir primer documento
+            </a>
+        </div>
+    {% endif %}
+    <!-- Botón flotante para subir documento -->
+    {% if documents %}
+    <a href="{{ url_for('documents.upload_document', contract_id=contract.id) }}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Subir Documento
+    </a>
+    {% endif %}
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+
+{% endblock %}
