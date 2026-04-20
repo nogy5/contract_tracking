@@ -10,26 +10,76 @@
     </a>
 </div>
 
-<!-- Filtros -->
+<!-- ═══════════════════════════ FILTROS ═══════════════════════════ -->
 <div class="card mb-4">
-    <div class="card-body">
-        <form method="GET" action="{{ url_for('contracts.index') }}" class="row g-3">
-            <div class="col-md-4">
-                <label for="status" class="form-label">Filtrar por Estado</label>
-                <select class="form-select" id="status" name="status" onchange="this.form.submit()">
-                    <option value="">Todos los estados</option>
-                    <option value="activo" {% if request.args.get('status') == 'activo' %}selected{% endif %}>Activo</option>
-                    <option value="finalizado" {% if request.args.get('status') == 'finalizado' %}selected{% endif %}>Finalizado</option>
-                    <option value="cancelado" {% if request.args.get('status') == 'cancelado' %}selected{% endif %}>Cancelado</option>
-                    <option value="en_revision" {% if request.args.get('status') == 'en_revision' %}selected{% endif %}>En Revisión</option>
-                    <option value="suspendido" {% if request.args.get('status') == 'suspendido' %}selected{% endif %}>Suspendido</option>
-                </select>
+    <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+        <span class="fw-semibold">🔍 Filtros</span>
+        {% if request.args.get('status') or request.args.get('counterparty') or request.args.get('contract_number') or request.args.get('title') or request.args.get('start_date') %}
+            <a href="{{ url_for('contracts.index') }}" class="btn btn-sm btn-outline-secondary">✖ Limpiar filtros</a>
+        {% endif %}
+    </div>
+    <div class="card-body py-3">
+        <form method="GET" action="{{ url_for('contracts.index') }}" id="filterForm">
+            {# Conservar ordenación al filtrar #}
+            <input type="hidden" name="sort" value="{{ request.args.get('sort', '') }}">
+            <input type="hidden" name="dir"  value="{{ request.args.get('dir', 'asc') }}">
+
+            <div class="row g-2 align-items-end">
+                <!-- Estado -->
+                <div class="col-md-2">
+                    <label for="status" class="form-label form-label-sm mb-1">Estado</label>
+                    <select class="form-select form-select-sm" id="status" name="status">
+                        <option value="">Todos</option>
+                        <option value="activo"      {% if request.args.get('status') == 'activo'      %}selected{% endif %}>Activo</option>
+                        <option value="finalizado"  {% if request.args.get('status') == 'finalizado'  %}selected{% endif %}>Finalizado</option>
+                        <option value="cancelado"   {% if request.args.get('status') == 'cancelado'   %}selected{% endif %}>Cancelado</option>
+                        <option value="en_revision" {% if request.args.get('status') == 'en_revision' %}selected{% endif %}>En Revisión</option>
+                        <option value="suspendido"  {% if request.args.get('status') == 'suspendido'  %}selected{% endif %}>Suspendido</option>
+                    </select>
+                </div>
+
+                <!-- Cliente / Contraparte -->
+                <div class="col-md-3">
+                    <label for="counterparty" class="form-label form-label-sm mb-1">Cliente / Contraparte</label>
+                    <input type="text" class="form-control form-control-sm" id="counterparty" name="counterparty"
+                           placeholder="Buscar cliente…"
+                           value="{{ request.args.get('counterparty', '') }}">
+                </div>
+
+                <!-- Número de contrato -->
+                <div class="col-md-2">
+                    <label for="contract_number" class="form-label form-label-sm mb-1">Número de Contrato</label>
+                    <input type="text" class="form-control form-control-sm" id="contract_number" name="contract_number"
+                           placeholder="Ej. CONT-001"
+                           value="{{ request.args.get('contract_number', '') }}">
+                </div>
+
+                <!-- Título -->
+                <div class="col-md-3">
+                    <label for="title" class="form-label form-label-sm mb-1">Título</label>
+                    <input type="text" class="form-control form-control-sm" id="title" name="title"
+                           placeholder="Buscar título…"
+                           value="{{ request.args.get('title', '') }}">
+                </div>
+
+                <!-- Fecha de inicio -->
+                <div class="col-md-2">
+                    <label for="start_date" class="form-label form-label-sm mb-1">Fecha de Inicio</label>
+                    <input type="date" class="form-control form-control-sm" id="start_date" name="start_date"
+                           value="{{ request.args.get('start_date', '') }}">
+                </div>
+            </div>
+
+            <div class="row mt-2">
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-sm btn-primary">Aplicar filtros</button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Alertas de contratos próximos a vencer -->
+<!-- ═══════════════ ALERTAS PRÓXIMOS A VENCER ════════════════════ -->
 {% if expiring_soon %}
 <div class="alert alert-warning alert-dismissible fade show" role="alert">
     <h5 class="alert-heading">⚠️ Contratos próximos a vencer ({{ expiring_soon|length }})</h5>
@@ -46,38 +96,83 @@
 </div>
 {% endif %}
 
-<!-- Tabla de contratos con orden reorganizado -->
+<!-- ═══════════════════════ TABLA DE CONTRATOS ═══════════════════ -->
 {% if contracts %}
+
+{# ── Macro: URL para ordenar una columna, invirtiendo dirección si ya está activa ── #}
+{% macro sort_url(col) %}{{ url_for('contracts.index',
+    sort=col,
+    dir=('desc' if (request.args.get('sort','') == col and request.args.get('dir','asc') == 'asc') else 'asc'),
+    status=request.args.get('status',''),
+    counterparty=request.args.get('counterparty',''),
+    contract_number=request.args.get('contract_number',''),
+    title=request.args.get('title',''),
+    start_date=request.args.get('start_date',''),
+    page=1) }}{% endmacro %}
+
+{# ── Macro: ícono de dirección activa ── #}
+{% macro sort_icon(col) %}{% if request.args.get('sort','') == col %}{% if request.args.get('dir','asc') == 'asc' %} ▲{% else %} ▼{% endif %}{% else %} <span style="opacity:.3;">⇅</span>{% endif %}{% endmacro %}
+
 <div class="card">
-    <div class="card-header bg-light">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Listado de Contratos</h5>
+        <small class="text-muted">{{ pagination.total }} registro(s)</small>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover table-striped mb-0">
+            <table class="table table-hover table-striped mb-0 align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <!-- NUEVO ORDEN: Cliente → Fecha Inicio → Título → Número -->
-                        <th scope="col" width="20%">Cliente / Contraparte</th>
-                        <th scope="col" width="13%">Número de Contrato</th>
-                        <th scope="col" width="22%">Título del Contrato</th>
-                        <th scope="col" width="12%">Fecha Inicio</th>
-                        <th scope="col" width="12%">Fecha Fin</th>
-                        <th scope="col" width="10%">Valor</th>
-                        <th scope="col" width="8%">Estado</th>
-                        <th scope="col" width="3%">Acciones</th>
+                        <th scope="col" style="white-space:nowrap; width:18%;">
+                            <a href="{{ sort_url('counterparty') }}" class="text-white text-decoration-none">
+                                Cliente / Contraparte{{ sort_icon('counterparty') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:11%;">
+                            <a href="{{ sort_url('contract_number') }}" class="text-white text-decoration-none">
+                                Nº Contrato{{ sort_icon('contract_number') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:20%;">
+                            <a href="{{ sort_url('title') }}" class="text-white text-decoration-none">
+                                Título{{ sort_icon('title') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:10%;">
+                            <a href="{{ sort_url('start_date') }}" class="text-white text-decoration-none">
+                                Fecha Inicio{{ sort_icon('start_date') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:10%;">
+                            <a href="{{ sort_url('end_date') }}" class="text-white text-decoration-none">
+                                Fecha Fin{{ sort_icon('end_date') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:9%;">
+                            <a href="{{ sort_url('value') }}" class="text-white text-decoration-none">
+                                Valor{{ sort_icon('value') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:8%;">
+                            <a href="{{ sort_url('status') }}" class="text-white text-decoration-none">
+                                Estado{{ sort_icon('status') }}
+                            </a>
+                        </th>
+                        <th scope="col" style="white-space:nowrap; width:14%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for contract in contracts %}
                     <tr>
-                        <!-- 1. CLIENTE / CONTRAPARTE (primero) -->
+                        <!-- 1. CLIENTE / CONTRAPARTE -->
                         <td><strong>{{ contract.counterparty }}</strong></td>
 
-                        <!-- 2. FECHA DE INICIO (segundo) -->
-                        <td>{{ contract.start_date.strftime('%d/%m/%Y') }}</td>
+                        <!-- 2. NÚMERO DE CONTRATO -->
+                        <td>
+                            <span class="badge bg-info text-dark">{{ contract.contract_number }}</span>
+                        </td>
 
-                        <!-- 3. TÍTULO (tercero) -->
+                        <!-- 3. TÍTULO -->
                         <td>
                             <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
                                class="text-decoration-none">
@@ -85,17 +180,19 @@
                             </a>
                         </td>
 
-                        <!-- 4. NÚMERO DE CONTRATO (cuarto) -->
+                        <!-- 4. FECHA INICIO -->
+                        <td>{{ contract.start_date.strftime('%d/%m/%Y') }}</td>
+
+                        <!-- 5. FECHA FIN -->
                         <td>
-                            <span class="badge bg-info text-dark">
-                                {{ contract.contract_number }}
-                            </span>
+                            {% if contract.end_date %}
+                                {{ contract.end_date.strftime('%d/%m/%Y') }}
+                            {% else %}
+                                <span class="text-muted">Sin fecha</span>
+                            {% endif %}
                         </td>
 
-                        <!-- 5. FECHA FIN (quinto) -->
-                        <td>{{ contract.end_date.strftime('%d/%m/%Y') if contract.end_date else 'Sin fecha' }}</td>
-
-                        <!-- 6. VALOR (sexto) -->
+                        <!-- 6. VALOR -->
                         <td>
                             {% if contract.value %}
                                 ${{ "{:,.2f}".format(contract.value) }}
@@ -104,7 +201,7 @@
                             {% endif %}
                         </td>
 
-                        <!-- 7. ESTADO (séptimo) -->
+                        <!-- 7. ESTADO -->
                         <td>
                             {% if contract.status == 'activo' %}
                                 <span class="badge bg-success">Activo</span>
@@ -121,29 +218,34 @@
                             {% endif %}
                         </td>
 
-                        <!-- 8. ACCIONES (octavo) -->
-                        <td>
-                            <div class="btn-group btn-group-sm">
+                        <!-- 8. ACCIONES -->
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm" role="group">
                                 <a href="{{ url_for('contracts.view_contract', id=contract.id) }}"
-                                   class="btn btn-outline-info btn-sm" title="Ver">
-                                    👁️
-                                </a>
+                                   class="btn btn-outline-info btn-sm" title="Ver contrato">👁️</a>
+
                                 <a href="{{ url_for('contracts.edit_contract', id=contract.id) }}"
-                                   class="btn btn-outline-warning btn-sm" title="Editar">
-                                    ✏️
-                                </a>
+                                   class="btn btn-outline-warning btn-sm" title="Editar contrato">✏️</a>
+
                                 <button type="button"
                                         class="btn btn-outline-danger btn-sm"
-                                        title="Eliminar"
+                                        title="Eliminar contrato"
                                         onclick="confirmDelete({{ contract.id }}, '{{ contract.contract_number }}', '{{ contract.title }}')">
-                                    ⛔
+                                    🗑️
                                 </button>
-{#                                <form method="POST" action="{{ url_for('contracts.delete_contract', id=contract.id) }}" style="display: inline;">#}
-{#                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Eliminar"#}
-{#                                            onclick="return confirm('¿Estás seguro de que deseas eliminar el contrato {{ contract.contract_number }}?');">#}
-{#                                        ⛔#}
-{#                                    </button>#}
-{#                                </form>#}
+
+                                {% set doc_count = contract.documents.count() %}
+                                {% if doc_count > 0 %}
+                                    <a href="{{ url_for('documents.contract_documents', contract_id=contract.id) }}"
+                                       class="btn btn-outline-success btn-sm"
+                                       title="{{ doc_count }} documento(s) adjunto(s)">
+                                        📄 <span class="badge bg-success rounded-pill" style="font-size:.65rem;">{{ doc_count }}</span>
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('documents.upload_document', contract_id=contract.id) }}"
+                                       class="btn btn-outline-secondary btn-sm"
+                                       title="Sin documentos — clic para cargar">📎</a>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
@@ -154,13 +256,21 @@
     </div>
 </div>
 
-<!-- Paginación -->
+<!-- ═══════════════════════════ PAGINACIÓN ════════════════════════ -->
 {% if pagination.pages > 1 %}
 <nav class="mt-4">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
             <a class="page-link"
-               href="{% if pagination.has_prev %}{{ url_for('contracts.index', page=pagination.prev_num, status=request.args.get('status', '')) }}{% else %}#{% endif %}">
+               href="{% if pagination.has_prev %}{{ url_for('contracts.index',
+                   page=pagination.prev_num,
+                   sort=request.args.get('sort',''),
+                   dir=request.args.get('dir','asc'),
+                   status=request.args.get('status',''),
+                   counterparty=request.args.get('counterparty',''),
+                   contract_number=request.args.get('contract_number',''),
+                   title=request.args.get('title',''),
+                   start_date=request.args.get('start_date','')) }}{% else %}#{% endif %}">
                 Anterior
             </a>
         </li>
@@ -169,7 +279,15 @@
             {% if page %}
                 <li class="page-item {% if page == pagination.page %}active{% endif %}">
                     <a class="page-link"
-                       href="{{ url_for('contracts.index', page=page, status=request.args.get('status', '')) }}">
+                       href="{{ url_for('contracts.index',
+                           page=page,
+                           sort=request.args.get('sort',''),
+                           dir=request.args.get('dir','asc'),
+                           status=request.args.get('status',''),
+                           counterparty=request.args.get('counterparty',''),
+                           contract_number=request.args.get('contract_number',''),
+                           title=request.args.get('title',''),
+                           start_date=request.args.get('start_date','')) }}">
                         {{ page }}
                     </a>
                 </li>
@@ -178,7 +296,15 @@
 
         <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
             <a class="page-link"
-               href="{% if pagination.has_next %}{{ url_for('contracts.index', page=pagination.next_num, status=request.args.get('status', '')) }}{% else %}#{% endif %}">
+               href="{% if pagination.has_next %}{{ url_for('contracts.index',
+                   page=pagination.next_num,
+                   sort=request.args.get('sort',''),
+                   dir=request.args.get('dir','asc'),
+                   status=request.args.get('status',''),
+                   counterparty=request.args.get('counterparty',''),
+                   contract_number=request.args.get('contract_number',''),
+                   title=request.args.get('title',''),
+                   start_date=request.args.get('start_date','')) }}{% else %}#{% endif %}">
                 Siguiente
             </a>
         </li>
@@ -189,12 +315,12 @@
 {% else %}
 <div class="alert alert-info text-center">
     <h4>No hay contratos registrados</h4>
-    <p>No se encontraron contratos.</p>
+    <p>No se encontraron contratos con los filtros aplicados.</p>
     <a href="{{ url_for('contracts.new_contract') }}" class="btn btn-primary">Crear el primer contrato</a>
 </div>
 {% endif %}
 
-<!-- Resumen de estadísticas -->
+<!-- ═══════════════════════ RESUMEN ESTADÍSTICAS ═════════════════ -->
 <div class="row mt-4">
     <div class="col-md-3">
         <div class="card bg-success text-white">
@@ -230,7 +356,7 @@
     </div>
 </div>
 
-    <!-- Modal de confirmación de eliminación -->
+<!-- ══════════════════ MODAL CONFIRMAR ELIMINACIÓN ═══════════════ -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -245,7 +371,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <form id="deleteForm" method="POST" style="display: inline;">
+                <form id="deleteForm" method="POST" style="display:inline;">
                     <button type="submit" class="btn btn-danger">Eliminar</button>
                 </form>
             </div>
@@ -258,13 +384,8 @@
 {% block scripts %}
 <script>
 function confirmDelete(contractId, contractNumber, contractTitle) {
-    // Actualizar información en el modal
     document.getElementById('contractInfo').textContent = contractNumber + ' - ' + contractTitle;
-
-    // Actualizar la acción del formulario
     document.getElementById('deleteForm').action = '/contracts/' + contractId + '/delete';
-
-    // Mostrar el modal
     const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     deleteModal.show();
 }

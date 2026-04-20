@@ -77,101 +77,71 @@ def index():
     except Exception as e:
         flash('Error al actualizar contratos vencidos', 'error')
 
-    # Obtener parámetros de filtro con valores por defecto
-    search = request.args.get('search', '').strip()
-    counterparty = request.args.get('counterparty', '').strip()
-    status = request.args.get('status', '').strip()
-    date_from = request.args.get('date_from', '').strip()
-    date_to = request.args.get('date_to', '').strip()
+    # ── Parámetros de filtro ──────────────────────────────────────────────────
+    status          = request.args.get('status',          '').strip()
+    counterparty    = request.args.get('counterparty',    '').strip()
+    contract_number = request.args.get('contract_number', '').strip()
+    title           = request.args.get('title',           '').strip()
+    start_date_str  = request.args.get('start_date',      '').strip()
 
-    # Parámetros de ordenamiento
+    # ── Parámetros de ordenamiento ────────────────────────────────────────────
+    # El template envía ?sort=<campo>&dir=asc|desc
+    valid_sort_columns = ['counterparty', 'contract_number', 'title',
+                          'start_date', 'end_date', 'value', 'status']
     sort = request.args.get('sort', 'counterparty')
-    order = request.args.get('order', 'asc')
+    if sort not in valid_sort_columns:
+        sort = 'counterparty'
+    direction = request.args.get('dir', 'asc')
 
-    # Paginación
-    page = request.args.get('page', 1, type=int)
-    per_page = 10  # Contratos por página
+    # ── Paginación ────────────────────────────────────────────────────────────
+    page     = request.args.get('page', 1, type=int)
+    per_page = 10
 
-    # 🚨🚨🚨 CAMBIO CRÍTICO: Construir la consulta base filtrando por el usuario actual 🚨🚨🚨
+    # ── Consulta base: solo contratos del usuario actual ──────────────────────
     query = Contract.query.filter_by(responsible_id=current_user.id)
 
-    # Aplicar filtros solo si tienen valores
-    if search:
-        query = query.filter(
-            or_(
-                Contract.contract_number.ilike(f'%{search}%'),
-                Contract.title.ilike(f'%{search}%')
-            )
-        )
-
+    # Filtro por estado
     if status:
         query = query.filter(Contract.status == status)
 
+    # Filtro por cliente/contraparte (búsqueda parcial, insensible a mayúsculas)
     if counterparty:
-        query = query.filter(Contract.counterparty == counterparty)
+        query = query.filter(Contract.counterparty.ilike(f'%{counterparty}%'))
 
-    if date_from:
+    # Filtro por número de contrato (búsqueda parcial)
+    if contract_number:
+        query = query.filter(Contract.contract_number.ilike(f'%{contract_number}%'))
+
+    # Filtro por título (búsqueda parcial)
+    if title:
+        query = query.filter(Contract.title.ilike(f'%{title}%'))
+
+    # Filtro por fecha de inicio (coincidencia exacta de día)
+    if start_date_str:
         try:
-            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
-            query = query.filter(Contract.start_date >= date_from_obj)
+            start_date_obj = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            query = query.filter(Contract.start_date == start_date_obj)
         except ValueError:
-            flash('Formato de fecha "desde" inválido', 'error')
+            flash('Formato de fecha de inicio inválido.', 'warning')
 
-    if date_to:
-        try:
-            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
-            query = query.filter(Contract.end_date <= date_to_obj)
-        except ValueError:
-            flash('Formato de fecha "hasta" inválido', 'error')
+    # ── Ordenamiento ──────────────────────────────────────────────────────────
+    column = getattr(Contract, sort)
+    query = query.order_by(desc(column) if direction == 'desc' else asc(column))
 
-    # Aplicar ordenamiento
-    valid_sort_columns = ['counterparty', 'start_date', 'contract_number',  'title', 'end_date', 'status']
-    if sort in valid_sort_columns:
-        column = getattr(Contract, sort)
-        if order == 'desc':
-            query = query.order_by(desc(column))
-        else:
-            query = query.order_by(asc(column))
-    else:
-        # Ordenamiento por defecto si el parámetro no es válido
-        query = query.order_by(desc(Contract.counterparty))
-
-    # Ordenar tabla principal por nombre del título después de ordenar por Cliente
-    if 'sort' not in request.args and 'order' not in request.args:
-        sort = 'title'
-        order = 'asc'
-
-    # Obtener total de contratos (sin filtros para estadísticas)
-    total_contracts = query.count()
+    # ── Totales para tarjetas de estadísticas ─────────────────────────────────
+    total_contracts  = query.count()
     total_milestones = Milestone.query.count()
 
-    # Ejecutar paginación
+    # ── Paginación ────────────────────────────────────────────────────────────
     try:
-        pagination = query.paginate(
-            page=page,
-            per_page=per_page,
-            error_out=False
-        )
-    except Exception as e:
-        # En caso de error en la paginación, mostrar primera página
-        pagination = query.paginate(
-            page=1,
-            per_page=per_page,
-            error_out=False
-        )
-        flash('Error en la paginación, mostrando primera página', 'warning')
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    except Exception:
+        pagination = query.paginate(page=1, per_page=per_page, error_out=False)
+        flash('Error en la paginación, mostrando primera página.', 'warning')
 
     contracts_list = pagination.items
 
-    # Obtener lista de contrapartes únicas para el filtro
-    try:
-        counterparties = db.session.query(Contract.counterparty).filter_by(
-            responsible_id=current_user.id).distinct().order_by(Contract.counterparty).all()
-        counterparties = [cp[0] for cp in counterparties if cp[0]]  # Filtrar valores nulos
-    except Exception:
-        counterparties = []
-
-    # Contratos próximos a vencer (próximos 60 días)
+    # ── Contratos próximos a vencer (60 días) ─────────────────────────────────
     try:
         sixty_days_from_now = datetime.now().date() + timedelta(days=60)
         expiring_soon = Contract.query.filter(
@@ -179,7 +149,7 @@ def index():
                 Contract.end_date <= sixty_days_from_now,
                 Contract.end_date >= datetime.now().date(),
                 Contract.status == 'activo',
-                Contract.responsible_id == current_user.id  # 🚨 Agregando el filtro aquí
+                Contract.responsible_id == current_user.id
             )
         ).order_by(Contract.end_date).limit(5).all()
     except Exception:
@@ -188,7 +158,6 @@ def index():
     return render_template('contracts/index.html',
                            contracts=contracts_list,
                            pagination=pagination,
-                           counterparties=counterparties,
                            expiring_soon=expiring_soon,
                            total_contracts=total_contracts,
                            total_milestones=total_milestones)
