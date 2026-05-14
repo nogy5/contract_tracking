@@ -32,6 +32,7 @@
                         <option value="cancelado"   {% if request.args.get('status') == 'cancelado'   %}selected{% endif %}>Cancelado</option>
                         <option value="en_revision" {% if request.args.get('status') == 'en_revision' %}selected{% endif %}>En Revisión</option>
                         <option value="suspendido"  {% if request.args.get('status') == 'suspendido'  %}selected{% endif %}>Suspendido</option>
+                        <option value="vencido"  {% if request.args.get('status') == 'vencido'  %}selected{% endif %}>Vencido</option>
                     </select>
                 </div>
                 <div class="col-md-3">
@@ -61,6 +62,42 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════ RESUMEN ESTADÍSTICAS ═════════════════ -->
+<div class="row mt-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h5>Activos</h5>
+                <h2>{{ contracts|selectattr('status', 'equalto', 'activo')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark">
+            <div class="card-body text-center">
+                <h5>En Revisión</h5>
+                <h2>{{ contracts|selectattr('status', 'equalto', 'en_revision')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body text-center">
+                <h5>Finalizados</h5>
+                <h2>{{ contracts|selectattr('status', 'equalto', 'finalizado')|list|length }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body text-center">
+                <h5>Por vencer</h5>
+                <h2>{{ expiring_soon|length if expiring_soon else 0 }}</h2>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -368,42 +405,6 @@
     <a href="{{ url_for('contracts.new_contract') }}" class="btn btn-primary">Crear el primer contrato</a>
 </div>
 {% endif %}
-
-<!-- ═══════════════════════ RESUMEN ESTADÍSTICAS ═════════════════ -->
-<div class="row mt-4">
-    <div class="col-md-3">
-        <div class="card bg-success text-white">
-            <div class="card-body text-center">
-                <h5>Activos</h5>
-                <h2>{{ contracts|selectattr('status', 'equalto', 'activo')|list|length }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-warning text-dark">
-            <div class="card-body text-center">
-                <h5>En Revisión</h5>
-                <h2>{{ contracts|selectattr('status', 'equalto', 'en_revision')|list|length }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-secondary text-white">
-            <div class="card-body text-center">
-                <h5>Finalizados</h5>
-                <h2>{{ contracts|selectattr('status', 'equalto', 'finalizado')|list|length }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body text-center">
-                <h5>Por vencer</h5>
-                <h2>{{ expiring_soon|length if expiring_soon else 0 }}</h2>
-            </div>
-        </div>
-    </div>
-</div>
 
 <!-- ══════════════════ MODAL CONFIRMAR ELIMINACIÓN ═══════════════ -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
